@@ -1,0 +1,159 @@
+package project.vegist.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import project.vegist.dtos.AddressDTO;
+import project.vegist.entities.Address;
+import project.vegist.entities.User;
+import project.vegist.exceptions.ResourceNotFoundException;
+import project.vegist.models.AddressModel;
+import project.vegist.repositories.AddressRepository;
+import project.vegist.repositories.UserRepository;
+import project.vegist.services.impls.CrudService;
+import project.vegist.utils.DateTimeUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+public class AddressService implements CrudService<Address, AddressDTO, AddressModel> {
+    private final AddressRepository addressRepository;
+    private final UserRepository userRepository;
+
+    @Autowired
+    public AddressService(AddressRepository addressRepository, UserRepository userRepository) {
+        this.addressRepository = addressRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public List<AddressModel> findAll() {
+        List<Address> addresses = addressRepository.findAll();
+        return addresses.stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AddressModel> findAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Address> addressPage = addressRepository.findAll(pageable);
+        return addressPage.getContent().stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<AddressModel> findById(Long id) {
+        Optional<Address> addressOptional = addressRepository.findById(id);
+        return addressOptional.map(this::convertToModel);
+    }
+
+    @Override
+    public Optional<AddressModel> create(AddressDTO addressDTO) {
+        if (!userRepository.existsById(addressDTO.getUserId())) {
+            throw new ResourceNotFoundException("User", addressDTO.getUserId(), HttpStatus.NOT_FOUND);
+        }
+        Address newAddress = new Address();
+        convertToEntity(addressDTO, newAddress);
+
+        Address savedAddress = addressRepository.save(newAddress);
+        return Optional.ofNullable(convertToModel(savedAddress));
+    }
+
+    @Override
+    public List<AddressModel> createAll(List<AddressDTO> addressDTOS) {
+        List<Address> addresses = addressDTOS.stream()
+                .map(dto -> {
+                    Address address = new Address();
+                    convertToEntity(dto, address);
+                    return address;
+                })
+                .toList();
+        List<Address> savedAddresses = addressRepository.saveAll(addresses);
+        return savedAddresses.stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<AddressModel> update(Long id, AddressDTO addressDTO) {
+        return addressRepository.findById(id)
+                .map(existingAddress -> {
+                    convertToEntity(addressDTO, existingAddress);
+                    Address updatedAddress = addressRepository.save(existingAddress);
+                    return convertToModel(updatedAddress);
+                });
+    }
+
+    @Override
+    public List<AddressModel> updateAll(Map<Long, AddressDTO> longAddressDTOMap) {
+        List<AddressModel> updatedAddressModels = new ArrayList<>();
+        for (Map.Entry<Long, AddressDTO> entry : longAddressDTOMap.entrySet()) {
+            Long addressId = entry.getKey();
+            AddressDTO addressDTO = entry.getValue();
+
+            Optional<Address> optionalAddress = addressRepository.findById(addressId);
+
+            if (optionalAddress.isPresent()) {
+                Address existingAddress = optionalAddress.get();
+                convertToEntity(addressDTO, existingAddress);
+                Address updatedAddress = addressRepository.save(existingAddress);
+                updatedAddressModels.add(convertToModel(updatedAddress));
+            }
+        }
+        return updatedAddressModels;
+    }
+
+    @Override
+    public boolean deleleById(Long id) {
+        if (addressRepository.existsById(id)) {
+            addressRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteAll(List<Long> ids) {
+        List<Address> addressesToDelete = addressRepository.findAllById(ids);
+        addressRepository.deleteAll(addressesToDelete);
+        return false;
+    }
+
+    @Override
+    public List<AddressModel> search(String keywords) {
+        return null;
+    }
+
+    @Override
+    public AddressModel convertToModel(Address address) {
+        return new AddressModel(address.getId(), address.getUser().getId()
+                , address.getDetail(), address.getWard(), address.getDistrict(), address.getCity(),
+                address.getCountry(), address.getZipCode(), address.getIframeAddress(), address.getAddressType(),
+                DateTimeUtils.formatLocalDateTime(address.getCreatedAt()), DateTimeUtils.formatLocalDateTime(address.getUpdatedAt()));
+    }
+
+    @Override
+    public void convertToEntity(AddressDTO addressDTO, Address address) {
+        Optional<User> user = userRepository.findById(addressDTO.getUserId());
+        if (user.isPresent()) {
+            address.setUser(user.get());
+            address.setDetail(addressDTO.getDetail());
+            address.setWard(addressDTO.getWard());
+            address.setDistrict(addressDTO.getDistrict());
+            address.setCity(addressDTO.getCity());
+            address.setCountry(addressDTO.getCountry());
+            address.setZipCode(addressDTO.getZipCode());
+            address.setIframeAddress(addressDTO.getIframeAddress());
+            address.setAddressType(addressDTO.getAddressType());
+        }
+    }
+}
