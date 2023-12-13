@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.UserDTO;
 import project.vegist.entities.Role;
 import project.vegist.entities.User;
@@ -93,6 +94,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserModel> findAll() {
         List<User> users = userRepository.findAll();
         return users.stream()
@@ -101,6 +103,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<User> userPage = userRepository.findAll(pageable);
@@ -110,12 +113,14 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<UserModel> findById(Long id) {
         Optional<User> userOptional = userRepository.findById(id);
         return userOptional.map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<UserModel> create(UserDTO userDTO) {
         User newUser = new User();
         convertToEntity(userDTO, newUser);
@@ -125,6 +130,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional
     public List<UserModel> createAll(List<UserDTO> userDTOS) {
         List<User> savedUsers = userDTOS.stream()
                 .map(dto -> {
@@ -140,6 +146,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional
     public Optional<UserModel> update(Long id, UserDTO userDTO) {
         return userRepository.findById(id)
                 .map(existingUser -> {
@@ -150,6 +157,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional
     public List<UserModel> updateAll(Map<Long, UserDTO> longUserDTOMap) {
         return longUserDTOMap.entrySet().stream()
                 .map(entry -> {
@@ -169,6 +177,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional
     public boolean deleleById(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
@@ -178,6 +187,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     }
 
     @Override
+    @Transactional
     public boolean deleteAll(List<Long> ids) {
         userRepository.deleteAllById(ids);
         return true;

@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.AddressDTO;
 import project.vegist.entities.Address;
 import project.vegist.entities.User;
@@ -34,6 +35,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AddressModel> findAll() {
         List<Address> addresses = addressRepository.findAll();
         return addresses.stream()
@@ -42,6 +44,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AddressModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Address> addressPage = addressRepository.findAll(pageable);
@@ -51,12 +54,14 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<AddressModel> findById(Long id) {
         Optional<Address> addressOptional = addressRepository.findById(id);
         return addressOptional.map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<AddressModel> create(AddressDTO addressDTO) {
         if (!userRepository.existsById(addressDTO.getUserId())) {
             throw new ResourceNotFoundException("User", addressDTO.getUserId(), HttpStatus.NOT_FOUND);
@@ -69,6 +74,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public List<AddressModel> createAll(List<AddressDTO> addressDTOS) {
         List<Address> addresses = addressDTOS.stream()
                 .map(dto -> {
@@ -84,6 +90,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public Optional<AddressModel> update(Long id, AddressDTO addressDTO) {
         return addressRepository.findById(id)
                 .map(existingAddress -> {
@@ -94,6 +101,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public List<AddressModel> updateAll(Map<Long, AddressDTO> longAddressDTOMap) {
         List<AddressModel> updatedAddressModels = new ArrayList<>();
         for (Map.Entry<Long, AddressDTO> entry : longAddressDTOMap.entrySet()) {
@@ -113,6 +121,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public boolean deleleById(Long id) {
         if (addressRepository.existsById(id)) {
             addressRepository.deleteById(id);
@@ -122,6 +131,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public boolean deleteAll(List<Long> ids) {
         List<Address> addressesToDelete = addressRepository.findAllById(ids);
         addressRepository.deleteAll(addressesToDelete);

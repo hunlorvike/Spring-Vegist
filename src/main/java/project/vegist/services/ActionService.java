@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.ActionDTO;
 import project.vegist.entities.Action;
 import project.vegist.models.ActionModel;
@@ -26,6 +27,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ActionModel> findAll() {
         return actionRepository.findAll().stream()
                 .map(this::convertToModel)
@@ -33,6 +35,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ActionModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return actionRepository.findAll(pageable).stream()
@@ -41,11 +44,13 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<ActionModel> findById(Long id) {
         return actionRepository.findById(id).map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<ActionModel> create(ActionDTO actionDTO) {
         Action newAction = new Action();
         convertToEntity(actionDTO, newAction);
@@ -53,6 +58,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional
     public List<ActionModel> createAll(List<ActionDTO> actionDTOS) {
         List<Action> newActions = actionDTOS.stream()
                 .map(actionDTO -> {
@@ -68,6 +74,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional
     public Optional<ActionModel> update(Long id, ActionDTO actionDTO) {
         return actionRepository.findById(id)
                 .map(existingAction -> {
@@ -77,6 +84,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional
     public List<ActionModel> updateAll(Map<Long, ActionDTO> longActionDTOMap) {
         return longActionDTOMap.entrySet().stream()
                 .map(entry -> {
@@ -96,11 +104,13 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     }
 
     @Override
+    @Transactional
     public boolean deleleById(Long id) {
         return actionRepository.existsById(id) && performDelete(id);
     }
 
     @Override
+    @Transactional
     public boolean deleteAll(List<Long> ids) {
         List<Action> actionsToDelete = actionRepository.findAllById(ids);
         if (!actionsToDelete.isEmpty()) {

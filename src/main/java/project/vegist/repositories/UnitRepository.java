@@ -6,4 +6,6 @@ import project.vegist.entities.Unit;
 @Repository
 public interface UnitRepository extends JpaRepository<Unit, Long> {
     boolean existsByUnitValueAndUnitName(Integer value, String name);
+
+    boolean existsByUnitValue(Integer unitValue);
 }

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.UserActionDTO;
 import project.vegist.entities.UserAction;
 import project.vegist.models.UserActionModel;
@@ -33,6 +34,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserActionModel> findAll() {
         return userActionRepository.findAll().stream()
                 .map(this::convertToModel)
@@ -40,6 +42,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserActionModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return userActionRepository.findAll(pageable).stream()
@@ -48,11 +51,13 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<UserActionModel> findById(Long id) {
         return userActionRepository.findById(id).map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<UserActionModel> create(UserActionDTO userActionDTO) {
         return userRepository.findById(userActionDTO.getUserId())
                 .flatMap(user -> actionRepository.findById(userActionDTO.getActionId())
@@ -65,6 +70,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional
     public List<UserActionModel> createAll(List<UserActionDTO> userActionDTOS) {
         List<UserAction> newUserActions = userActionDTOS.stream()
                 .map(userActionDTO -> {
@@ -81,6 +87,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional
     public Optional<UserActionModel> update(Long id, UserActionDTO userActionDTO) {
         return userActionRepository.findById(id)
                 .map(existingUserAction -> {
@@ -91,6 +98,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional
     public List<UserActionModel> updateAll(Map<Long, UserActionDTO> longUserActionDTOMap) {
         List<UserAction> updatedUserActions = longUserActionDTOMap.entrySet().stream()
                 .map(entry -> {
@@ -114,6 +122,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional
     public boolean deleleById(Long id) {
         if (userActionRepository.existsById(id)) {
             userActionRepository.deleteById(id);
@@ -123,6 +132,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     }
 
     @Override
+    @Transactional
     public boolean deleteAll(List<Long> ids) {
         List<UserAction> userActionsToDelete = userActionRepository.findAllById(ids);
         if (!userActionsToDelete.isEmpty()) {

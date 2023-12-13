@@ -1,12 +1,12 @@
 package project.vegist.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.ArticleDTO;
 import project.vegist.entities.ArticleTag;
 import project.vegist.entities.Articles;
@@ -40,6 +40,7 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ArticleModel> findAll() {
         return articleRepository.findAll().stream()
                 .map(this::convertToModel)
@@ -47,6 +48,7 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ArticleModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return articleRepository.findAll(pageable).getContent().stream()
@@ -55,6 +57,7 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<ArticleModel> findById(Long id) {
         return articleRepository.findById(id).map(this::convertToModel);
     }

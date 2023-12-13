@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.TagDTO;
 import project.vegist.entities.Tag;
 import project.vegist.models.TagModel;
@@ -27,6 +28,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TagModel> findAll() {
         return tagRepository.findAll().stream()
                 .map(this::convertToModel)
@@ -34,6 +36,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TagModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return tagRepository.findAll(pageable).stream()
@@ -42,11 +45,13 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<TagModel> findById(Long id) {
         return tagRepository.findById(id).map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<TagModel> create(TagDTO tagDTO) {
         Tag newTag = new Tag();
         convertToEntity(tagDTO, newTag);
@@ -55,6 +60,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional
     public List<TagModel> createAll(List<TagDTO> tagDTOS) {
         List<Tag> tagsToSave = tagDTOS.stream()
                 .map(tagDTO -> {
@@ -71,6 +77,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional
     public Optional<TagModel> update(Long id, TagDTO tagDTO) {
         return tagRepository.findById(id)
                 .map(existingTag -> {
@@ -81,6 +88,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional
     public List<TagModel> updateAll(Map<Long, TagDTO> longTagDTOMap) {
         return longTagDTOMap.entrySet().stream()
                 .map(entry -> {
@@ -100,6 +108,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional
     public boolean deleleById(Long id) {
         if (tagRepository.existsById(id)) {
             tagRepository.deleteById(id);
@@ -109,6 +118,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional
     public boolean deleteAll(List<Long> ids) {
         List<Tag> tagsToDelete = tagRepository.findAllById(ids);
         if (!tagsToDelete.isEmpty()) {
