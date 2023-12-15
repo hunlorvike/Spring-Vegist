@@ -1,0 +1,500 @@
+-- Bảng người dùng và phân quyền
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(255),
+    gender ENUM('MALE', 'FEMALE', 'NOT_GIVEN'),
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(20),
+    password VARCHAR(255), -- bcrypt
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB; -- Specify the storage engine.
+
+CREATE TABLE IF NOT EXISTS roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    role_name VARCHAR(255) UNIQUE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS users_roles(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    role_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS actions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    action_name VARCHAR(255) UNIQUE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS users_actions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng địa chỉ
+CREATE TABLE IF NOT EXISTS addresses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    detail VARCHAR(255),
+    ward VARCHAR(255),
+    district VARCHAR(255),
+    city VARCHAR(255),
+    country VARCHAR(255),
+    zip_code VARCHAR(20),
+    iframe_address VARCHAR(255),
+    address_type ENUM('HOME', 'WORK', 'OTHER'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng danh mục sản phẩm
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255),
+    status BOOLEAN,
+    parent_id INT,
+    seo_title VARCHAR(255),
+    meta_keys VARCHAR(255),
+    meta_desc VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng nhãn
+CREATE TABLE IF NOT EXISTS labels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    label_name VARCHAR(255) UNIQUE
+) ENGINE=InnoDB;
+
+-- Bảng đánh giá
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    product_id INT,
+    rating INT, -- 1->5 sao
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_review (user_id, product_id)
+) ENGINE=InnoDB;
+
+
+-- Bảng đơn vị
+CREATE TABLE IF NOT EXISTS units (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    unit_value INT,
+    unit_name VARCHAR(20)
+) ENGINE=InnoDB;
+
+-- Bảng sản phẩm
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255),
+    description TEXT,
+    price DECIMAL(10,2),
+    sale_price DECIMAL(10,2),
+    SKU VARCHAR(255),
+    view_count INT,
+    wishlist_count INT,
+    category_id INT,
+    label_id INT,
+    discount INT,
+    iframe_video VARCHAR(255),
+    seo_title VARCHAR(255),
+    meta_keys VARCHAR(255),
+    meta_desc VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng liên quan đến các ảnh của sản phẩm
+CREATE TABLE IF NOT EXISTS product_images (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+-- Bảng liên quan đến đơn vị sản phẩm
+CREATE TABLE IF NOT EXISTS products_units (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    unit_id INT
+) ENGINE=InnoDB;
+
+-- Bảng lưu sản phẩm vào danh sách yêu thích của người dùng
+CREATE TABLE IF NOT EXISTS user_wishlist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    product_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Bảng tồn kho
+CREATE TABLE IF NOT EXISTS inventories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    quantity INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng ưu đãi
+CREATE TABLE IF NOT EXISTS coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    value VARCHAR(255),
+    percent INT,
+    start_date DATE,
+    end_date DATE
+) ENGINE=InnoDB;
+
+-- Bảng liên quan đến giỏ hàng
+CREATE TABLE IF NOT EXISTS carts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    status ENUM('PENDING', 'PROCESSING', 'COMPLETED') DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+
+-- Bảng liên quan đến sản phẩm chi tiết trong giỏ hàng
+CREATE TABLE IF NOT EXISTS cart_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cart_id INT,
+    product_id INT,
+    quantity INT,
+    price DECIMAL(10,2), -- giá tại thời điểm thêm vào giỏ hàng
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng liên quan đến đơn hàng
+CREATE TABLE IF NOT EXISTS orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    status_name ENUM('PREPARING', 'DELIVERING', 'DELIVERED') UNIQUE,
+    coupon_id INT,
+    shipping_amount DECIMAL(10,2),
+    payment_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS order_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    product_price DECIMAL(10,2),
+    quantity INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng thanh toán
+CREATE TABLE IF NOT EXISTS payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_method ENUM('CREDIT_CARD', 'MOMO', 'CASH'), 
+    amount DECIMAL(10,2),
+    status BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng thẻ
+CREATE TABLE IF NOT EXISTS tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tag_name VARCHAR(255) UNIQUE,
+    status BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Bảng liên quan đến articles
+CREATE TABLE IF NOT EXISTS articles_tags (
+    articles_id INT,
+    tag_id INT,
+    PRIMARY KEY (articles_id, tag_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255),
+    content TEXT,
+    thumbnail VARCHAR(255),
+    seo_title VARCHAR(255),
+    meta_keys VARCHAR(255),
+    meta_desc VARCHAR(255),
+    creator_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-------------------------------------------------------------- 
+
+ALTER TABLE users_roles
+ADD CONSTRAINT fk_users_roles_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_users_roles_roles FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
+
+ALTER TABLE users_actions
+ADD CONSTRAINT fk_users_actions_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_users_actions_actions FOREIGN KEY (action_id) REFERENCES actions(id) ON DELETE CASCADE;
+
+ALTER TABLE addresses
+ADD CONSTRAINT fk_addresses_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE reviews
+ADD CONSTRAINT fk_reviews_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_reviews_products FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+
+ALTER TABLE products
+ADD CONSTRAINT fk_products_categories FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_products_labels FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE;
+
+ALTER TABLE products_units
+ADD CONSTRAINT fk_units_products FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_units_units FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE;
+
+ALTER TABLE inventories
+ADD CONSTRAINT fk_inventories_products FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+
+ALTER TABLE coupons
+ADD CONSTRAINT fk_coupons_orders FOREIGN KEY (id) REFERENCES orders(id) ON DELETE CASCADE;
+
+ALTER TABLE carts
+ADD CONSTRAINT fk_carts_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE cart_items
+ADD CONSTRAINT fk_cart_items_carts FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_cart_items_products FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+
+ALTER TABLE orders
+ADD CONSTRAINT fk_orders_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_orders_coupons FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_orders_payments FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+
+ALTER TABLE order_details
+ADD CONSTRAINT fk_order_details_orders FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_order_details_products FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+
+ALTER TABLE articles
+ADD CONSTRAINT fk_articles_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE articles_tags
+ADD CONSTRAINT fk_articles_tags_articles FOREIGN KEY (articles_id) REFERENCES articles(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_articles_tags_tags FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE;
+
+
+---------------------------------------------------------------------
+
+-- Chỉ mục cho bảng users
+CREATE INDEX idx_users_id ON users (id);
+CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_users_phone ON users (phone);
+
+-- Chỉ mục cho bảng roles
+CREATE INDEX idx_roles_id ON roles (id);
+CREATE INDEX idx_roles_role_name ON roles (role_name);
+
+-- Chỉ mục cho bảng user_roles
+CREATE INDEX idx_user_roles_user_id ON user_roles (user_id);
+CREATE INDEX idx_user_roles_role_id ON user_roles (role_id);
+
+-- Chỉ mục cho bảng addresses
+CREATE INDEX idx_addresses_user_id ON addresses (user_id);
+CREATE INDEX idx_addresses_address_type ON addresses (address_type);
+
+-- Chỉ mục cho bảng categories
+CREATE INDEX idx_categories_id ON categories (id);
+CREATE INDEX idx_categories_name ON categories (name);
+
+-- Chỉ mục cho bảng labels
+CREATE INDEX idx_labels_id ON labels (id);
+CREATE INDEX idx_labels_label_name ON labels (label_name);
+
+-- Chỉ mục cho bảng reviews
+CREATE INDEX idx_reviews_user_id ON reviews (user_id);
+CREATE INDEX idx_reviews_product_id ON reviews (product_id);
+
+-- Chỉ mục cho bảng products
+CREATE INDEX idx_products_id ON products (id);
+CREATE INDEX idx_products_product_name ON products (product_name);
+CREATE INDEX idx_products_category_id ON products (category_id);
+CREATE INDEX idx_products_label_id ON products (label_id);
+
+-- Chỉ mục cho bảng units
+CREATE INDEX idx_units_id ON units (id);
+
+-- Chỉ mục cho bảng inventories
+CREATE INDEX idx_inventories_product_id ON inventories (product_id);
+
+-- Chỉ mục cho bảng coupons
+CREATE INDEX idx_coupons_id ON coupons (id);
+CREATE INDEX idx_coupons_value ON coupons (value);
+
+-- Chỉ mục cho bảng carts
+CREATE INDEX idx_carts_user_id ON carts (user_id);
+
+------------------------------------------------- Stored Procedures
+-- Thêm người dùng mới:
+DELIMITER //
+CREATE PROCEDURE AddUser(
+    IN p_full_name VARCHAR(255),
+    IN p_email VARCHAR(255),
+    IN p_password VARCHAR(255)
+)
+BEGIN
+    INSERT INTO users (full_name, email, password)
+    VALUES (p_full_name, p_email, p_password);
+END //
+DELIMITER ;
+
+-- Lấy thông tin đơn hàng theo người dùng
+DELIMITER //
+CREATE PROCEDURE GetOrdersByUser(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT * FROM orders WHERE user_id = p_user_id;
+END //
+DELIMITER ;
+
+
+-- Thêm sản phẩm vào giỏ hàng
+DELIMITER //
+CREATE PROCEDURE AddProductToCart(
+    IN p_cart_id INT,
+    IN p_product_id INT,
+    IN p_quantity INT,
+    IN p_price DECIMAL(10,2)
+)
+BEGIN
+    INSERT INTO cart_items (cart_id, product_id, quantity, price)
+    VALUES (p_cart_id, p_product_id, p_quantity, p_price);
+END //
+DELIMITER ;
+
+
+-- Lấy thông tin giỏ hàng của người dùng
+DELIMITER //
+CREATE PROCEDURE GetCartByUser(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT * FROM carts WHERE user_id = p_user_id;
+END //
+DELIMITER ;
+
+
+-- Lấy thông tin sản phẩm trong giỏ hàng:
+DELIMITER //
+CREATE PROCEDURE GetCartItems(
+    IN p_cart_id INT
+)
+BEGIN
+    SELECT ci.*, p.product_name
+    FROM cart_items ci
+    INNER JOIN products p ON ci.product_id = p.id
+    WHERE ci.cart_id = p_cart_id;
+END //
+DELIMITER ;
+
+-- Lấy danh sách đơn đặt hàng của người dùng với chi tiết sản phẩm:
+DELIMITER //
+CREATE PROCEDURE GetOrdersWithDetails(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT o.*, od.*, p.product_name
+    FROM orders o
+    INNER JOIN order_details od ON o.id = od.order_id
+    INNER JOIN products p ON od.product_id = p.id
+    WHERE o.user_id = p_user_id;
+END //
+DELIMITER ;
+
+-- Lấy danh sách sản phẩm theo danh mục
+DELIMITER //
+CREATE PROCEDURE GetProductsByCategory(
+    IN p_category_id INT
+)
+BEGIN
+    SELECT * FROM products WHERE category_id = p_category_id;
+END //
+DELIMITER ;
+
+-- Lấy danh sách sản phẩm được đánh giá cao
+DELIMITER //
+CREATE PROCEDURE GetHighlyRatedProducts()
+BEGIN
+    SELECT p.*, AVG(r.rating) as avg_rating
+    FROM products p
+    LEFT JOIN reviews r ON p.id = r.product_id
+    GROUP BY p.id
+    HAVING avg_rating IS NOT NULL
+    ORDER BY avg_rating DESC;
+END //
+DELIMITER ;
+
+-- Lọc sản phẩm theo giá tiền
+DELIMITER //
+CREATE PROCEDURE GetProductsByPrice(
+    IN p_order_type VARCHAR(10) -- 'asc' for ascending, 'desc' for descending
+)
+BEGIN
+    IF p_order_type = 'asc' THEN
+        SELECT * FROM products ORDER BY price;
+    ELSE
+        SELECT * FROM products ORDER BY price DESC;
+    END IF;
+END //
+DELIMITER ;
+
+-- Lọc sản phẩm theo số lượt mua
+DELIMITER //
+CREATE PROCEDURE GetProductsByPurchaseCount(
+    IN p_order_type VARCHAR(10) -- 'asc' for ascending, 'desc' for descending
+)
+BEGIN
+    IF p_order_type = 'desc' THEN
+        SELECT p.*, COUNT(o.id) as purchase_count
+        FROM products p
+        LEFT JOIN order_details od ON p.id = od.product_id
+        LEFT JOIN orders o ON od.order_id = o.id
+        GROUP BY p.id
+        ORDER BY purchase_count DESC;
+    ELSE
+        SELECT p.*, COUNT(o.id) as purchase_count
+        FROM products p
+        LEFT JOIN order_details od ON p.id = od.product_id
+        LEFT JOIN orders o ON od.order_id = o.id
+        GROUP BY p.id
+        ORDER BY purchase_count;
+    END IF;
+END //
+DELIMITER ;
+
+
+-- Lấy danh sách sản phẩm trong danh sách yêu thích của người dùng
+DELIMITER //
+CREATE PROCEDURE GetWishlistByUser(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT w.*, p.product_name
+    FROM user_wishlist w
+    INNER JOIN products p ON w.product_id = p.id
+    WHERE w.user_id = p_user_id;
+END //
+DELIMITER ;
+
+
