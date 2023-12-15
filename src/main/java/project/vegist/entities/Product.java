@@ -41,6 +41,9 @@ public class Product {
 
     private String SKU;
 
+    @Column(name = "thumbnail", length = 255)
+    private String thumbnail;
+
     @Column(name = "view_count")
     private Integer viewCount;
 
