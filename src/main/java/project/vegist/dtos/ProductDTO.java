@@ -59,5 +59,5 @@ public class ProductDTO {
     @Size(max = 255, message = "Meta description must be less than or equal to 255 characters")
     private String metaDesc;
 
-    private List<String> imagesProduct;
+    private List<ProductImageDTO> imagesProduct;
 }
