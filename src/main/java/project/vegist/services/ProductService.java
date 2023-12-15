@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import project.vegist.dtos.ProductDTO;
 import project.vegist.entities.Product;
+import project.vegist.models.ProductImageModel;
 import project.vegist.models.ProductModel;
 import project.vegist.repositories.CategoryRepository;
 import project.vegist.repositories.LabelRepository;
@@ -20,31 +21,19 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProductService implements CrudService<Product, ProductDTO, ProductModel> {
-    private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
-    private final LabelRepository labelRepository;
-
-    @Autowired
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, LabelRepository labelRepository) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.labelRepository = labelRepository;
-    }
-
     @Override
     public List<ProductModel> findAll() {
-        return productRepository.findAll().stream().map(this::convertToModel).collect(Collectors.toList());
+        return null;
     }
 
     @Override
     public List<ProductModel> findAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return productRepository.findAll(pageable).stream().map(this::convertToModel).collect(Collectors.toList());
+        return null;
     }
 
     @Override
     public Optional<ProductModel> findById(Long id) {
-        return productRepository.findById(id).map(this::convertToModel);
+        return Optional.empty();
     }
 
     @Override
@@ -84,45 +73,13 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
 
     @Override
     public ProductModel convertToModel(Product product) {
-        return new ProductModel(
-                product.getId(),
-                product.getProductName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getSalePrice(),
-                product.getSKU(),
-                product.getThumbnail(),
-                product.getIframeVideo(),
-                product.getViewCount(),
-                product.getWishlistCount(),
-                product.getCategory().getId(),
-                product.getLabel().getId(),
-                product.getDiscount(),
-                product.getSeoTitle(),
-                product.getMetaKeys(),
-                product.getMetaDesc(),
-                DateTimeUtils.formatLocalDateTime(product.getCreatedAt()),
-                DateTimeUtils.formatLocalDateTime(product.getUpdatedAt())
-        );
+        return null;
     }
-
 
     @Override
     public void convertToEntity(ProductDTO productDTO, Product product) {
-        product.setProductName(productDTO.getProductName());
-        product.setDescription(productDTO.getDescription());
-        product.setPrice(productDTO.getPrice());
-        product.setSalePrice(productDTO.getSalePrice());
-        product.setSKU(productDTO.getSKU());
-        product.setThumbnail(productDTO.getThumbnail());
-        product.setViewCount(productDTO.getViewCount());
-        product.setWishlistCount(productDTO.getWishlistCount());
-        product.setCategory(categoryRepository.findById(productDTO.getCategoryId()).get());
-        product.setLabel(labelRepository.findById(productDTO.getLabelId()).get());
-        product.setDiscount(productDTO.getDiscount());
-        product.setIframeVideo(productDTO.getIframeVideo());
-        product.setSeoTitle(productDTO.getSeoTitle());
-        product.setMetaKeys(productDTO.getMetaKeys());
-        product.setMetaDesc(productDTO.getMetaDesc());
+
     }
 }
+
+
