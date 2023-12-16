@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhModel> {
@@ -34,7 +35,9 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
     @Override
     public List<HocSinhModel> findAll() {
-        return null;
+        return hocSinhRepository.findAll().stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -44,7 +47,9 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
     @Override
     public Optional<HocSinhModel> findById(Long id) {
-        return Optional.empty();
+        Optional<HocSinh> hocSinhOptional = hocSinhRepository.findById(id);
+        return hocSinhOptional.map(this::convertToModel);
+
     }
 
     @Override
@@ -70,9 +75,7 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
         }
 
         // Liên kết HocSinh với các file trong album và lưu chúng
-        for (AlbumHocSinh albumHocSinh : albumFiles) {
-            albumHocSinhRepository.save(albumHocSinh);
-        }
+        albumHocSinhRepository.saveAll(albumFiles);
 
         return Optional.ofNullable(convertToModel(hocSinh));
     }
@@ -95,8 +98,25 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
     @Override
     public boolean deleleById(Long id) {
+        if (hocSinhRepository.existsById(id)) {
+            // Retrieve the HocSinh entity
+            Optional<HocSinh> optionalHocSinh = hocSinhRepository.findById(id);
+            if (optionalHocSinh.isPresent()) {
+                HocSinh hocSinh = optionalHocSinh.get();
+
+                // Delete associated AlbumHocSinh records
+                List<AlbumHocSinh> albumHocSinhs = albumHocSinhRepository.findByHocsinh_Id(id);
+                // FileUtils.deleteFile(FileUtils.joinPaths(uploadDirectory, albumHocSinh.getAssetsPath()));
+                albumHocSinhRepository.deleteAll(albumHocSinhs);
+
+                // Delete HocSinh
+                hocSinhRepository.deleteById(id);
+                return true;
+            }
+        }
         return false;
     }
+
 
     @Override
     public boolean deleteAll(List<Long> ids) {
@@ -110,7 +130,12 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
     @Override
     public HocSinhModel convertToModel(HocSinh hocSinh) {
-        return new HocSinhModel(hocSinh.getId(), hocSinh.getName(), hocSinh.getAge(), hocSinh.getAvatarPath());
+        List<AlbumHocSinh> albumHocSinhs = albumHocSinhRepository.findByHocsinh_Id(hocSinh.getId());
+        List<String> albumPaths = albumHocSinhs.stream()
+                .map(AlbumHocSinh::getAssetsPath)
+                .collect(Collectors.toList());
+
+        return new HocSinhModel(hocSinh.getId(), hocSinh.getName(), hocSinh.getAge(), hocSinh.getAvatarPath(), albumPaths);
     }
 
     @Override
@@ -124,9 +149,9 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
         String fileExtension = FileUtils.getFileExtension(originalFileName);
 
         String subFolder;
-        if (isImageFile(fileExtension)) {
+        if (FileUtils.isImageFile(fileExtension)) {
             subFolder = "images";
-        } else if (isVideoFile(fileExtension)) {
+        } else if (FileUtils.isVideoFile(fileExtension)) {
             subFolder = "videos";
         } else {
             subFolder = "other";
@@ -140,16 +165,11 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
         FileUtils.saveFile(file, filePath);
 
-        return uniqueFileName;
-    }
+        // Tạo URL dựa trên subFolder và uniqueFileName
+        String baseUrl = "http://localhost:8080/static/";
+        String fileUrl = baseUrl + subFolder + "/" + uniqueFileName;
 
-
-    private boolean isImageFile(String fileExtension) {
-        return Arrays.asList("jpg", "png", "gif").contains(fileExtension.toLowerCase());
-    }
-
-    private boolean isVideoFile(String fileExtension) {
-        return Arrays.asList("mp4", "avi", "mkv").contains(fileExtension.toLowerCase());
+        return fileUrl;
     }
 
 }

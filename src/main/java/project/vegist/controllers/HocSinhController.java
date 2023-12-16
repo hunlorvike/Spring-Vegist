@@ -10,6 +10,7 @@ import project.vegist.models.HocSinhModel;
 import project.vegist.services.HocSinhService;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/public/hoc-sinh")
@@ -22,7 +23,20 @@ public class HocSinhController {
         this.hocSinhService = hocSinhService;
     }
 
-    @PostMapping("/create")
+    @GetMapping("/")
+    public ResponseEntity<List<HocSinhModel>> findAllHocSinhs() {
+        List<HocSinhModel> hocSinhs = hocSinhService.findAll();
+        return new ResponseEntity<>(hocSinhs, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<HocSinhModel> findHocSinhById(@PathVariable Long id) {
+        return hocSinhService.findById(id)
+                .map(hocSinhModel -> new ResponseEntity<>(hocSinhModel, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @PostMapping("/")
     public ResponseEntity<HocSinhModel> createHocSinh(
             @RequestParam("name") String name,
             @RequestParam("age") int age,
@@ -46,6 +60,14 @@ public class HocSinhController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteHocSinh(@PathVariable Long id) {
+        if (hocSinhService.deleleById(id)) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 
 
 }
