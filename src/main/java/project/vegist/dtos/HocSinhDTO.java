@@ -1,12 +1,15 @@
 package project.vegist.dtos;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+import java.util.List;
 
 
 @Data
@@ -23,4 +26,10 @@ public class HocSinhDTO {
     @Valid
     @NotNull(message = "Avatar cannot be null")
     private MultipartFile avatar;
+
+    private List<MultipartFile> albumFiles;
+
+    public void setAlbumFiles(MultipartFile[] albumFiles) {
+        this.albumFiles = Arrays.asList(albumFiles);
+    }
 }

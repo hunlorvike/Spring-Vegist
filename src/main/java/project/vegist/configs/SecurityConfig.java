@@ -43,6 +43,7 @@ public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     private static final String[] PUBLIC_URLS = {
+            "/static/**",
             "/test/**",
             "/auth/**",
             "/api/v1/public/**",
@@ -72,6 +73,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(requests ->
                         requests
+                                .requestMatchers(HttpMethod.GET, PUBLIC_URLS).permitAll()
                                 .requestMatchers(PUBLIC_URLS).permitAll()
                                 .requestMatchers(PRIVATE_URLS).hasAnyRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET, PRIVATE_URLS).hasAnyRole("ADMIN_READ")

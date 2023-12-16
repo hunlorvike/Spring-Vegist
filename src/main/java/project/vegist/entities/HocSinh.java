@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,4 +22,7 @@ public class HocSinh {
     private int age;
 
     private String avatarPath;
+
+    @OneToMany(mappedBy = "hocsinh", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<AlbumHocSinh> albums;
 }

@@ -2,6 +2,7 @@ package project.vegist.services.impls;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,7 +18,7 @@ public interface CrudService<Entity, DTO, Model> {
     Optional<Model> findById(Long id);
 
     @Transactional
-    Optional<Model> create(DTO dto);
+    Optional<Model> create(DTO dto) throws IOException;
 
     @Transactional
     List<Model> createAll(List<DTO> dtos);
