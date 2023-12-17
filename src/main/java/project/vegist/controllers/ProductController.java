@@ -1,21 +1,20 @@
 package project.vegist.controllers;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import project.vegist.dtos.ProductDTO;
-import project.vegist.exceptions.ResourceExistException;
 import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.models.ProductModel;
-import project.vegist.repositories.ProductRepository;
 import project.vegist.responses.BaseResponse;
 import project.vegist.responses.ErrorResponse;
 import project.vegist.responses.SuccessResponse;
 import project.vegist.services.ProductService;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -24,12 +23,10 @@ import java.util.Optional;
 @RequestMapping("/api/v1/private")
 public class ProductController {
     private final ProductService productService;
-    private final ProductRepository productRepository;
 
     @Autowired
-    public ProductController(ProductService productService, ProductRepository productRepository) {
+    public ProductController(ProductService productService) {
         this.productService = productService;
-        this.productRepository = productRepository;
     }
 
     @GetMapping("/products")
@@ -62,20 +59,58 @@ public class ProductController {
 
     @PostMapping("/products")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<ProductModel>> createProduct(@Valid @RequestBody ProductDTO productDTO) {
-        try {
-            if (productRepository.existsByProductName(productDTO.getProductName())) {
-                throw new ResourceExistException("product " + productDTO.getProductName(), HttpStatus.CONFLICT);
-            }
+    public ResponseEntity<BaseResponse<ProductModel>> createProduct(
+            @RequestParam("productName") String productName,
+            @RequestParam("description") String description,
+            @RequestParam("price") BigDecimal price,
+            @RequestParam(value = "salePrice", required = false) BigDecimal salePrice,
+            @RequestParam("SKU") String SKU,
+            @RequestPart("thumbnail") MultipartFile thumbnail,
+            @RequestPart(value = "imagesProduct", required = false) MultipartFile[] imagesProduct,
+            @RequestParam(value = "viewCount", defaultValue = "0") Integer viewCount,
+            @RequestParam(value = "wishLishCount", defaultValue = "0") Integer wishLishCount,
+            @RequestParam("categoryId") Long categoryId,
+            @RequestParam("labelId") Long labelId,
+            @RequestParam(value = "discount", defaultValue = "0") Integer discount,
+            @RequestParam(value = "iframeVideo", required = false) String iframeVideo,
+            @RequestParam(value = "seoTitle", required = false) String seoTitle,
+            @RequestParam(value = "metaKeys", required = false) String metaKeys,
+            @RequestParam(value = "metaDesc", required = false) String metaDesc) {
+        if (thumbnail != null || imagesProduct != null) {
+            try {
+                // Create ProductDTO manually
+                ProductDTO productDTO = new ProductDTO();
+                productDTO.setProductName(productName);
+                productDTO.setDescription(description);
+                productDTO.setPrice(price);
+                productDTO.setSalePrice(salePrice);
+                productDTO.setSKU(SKU);
+                productDTO.setThumbnail(thumbnail);
+                productDTO.setImagesProduct(imagesProduct);
+                productDTO.setViewCount(viewCount);
+                productDTO.setWishlistCount(wishLishCount);
+                productDTO.setCategoryId(categoryId);
+                productDTO.setLabelId(labelId);
+                productDTO.setDiscount(discount);
+                productDTO.setIframeVideo(iframeVideo);
+                productDTO.setSeoTitle(seoTitle);
+                productDTO.setMetaKeys(metaKeys);
+                productDTO.setMetaDesc(metaDesc);
 
-            Optional<ProductModel> createdProduct = productService.create(productDTO);
-            return createdProduct.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
-                    .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(new ErrorResponse<>(Collections.singletonList("Failed to create product"))));
-        } catch (ResourceExistException e) {
-            return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
+                Optional<ProductModel> createdProduct = productService.create(productDTO);
+                return createdProduct.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
+                        .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new ErrorResponse<>(Collections.singletonList("Failed to create product"))));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+            }
+        } else {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse<>(Collections.singletonList("Thumbnail or imagesProduct is null")));
         }
     }
+
 
     @PutMapping("/products/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")

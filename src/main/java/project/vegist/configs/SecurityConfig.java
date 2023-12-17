@@ -43,7 +43,9 @@ public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     private static final String[] PUBLIC_URLS = {
-            "/static/**",
+            "/static/images/**",
+            "/static/videos/**",
+            "/static/other/**",
             "/test/**",
             "/auth/**",
             "/api/v1/public/**",

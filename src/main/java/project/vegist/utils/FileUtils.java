@@ -1,6 +1,7 @@
 package project.vegist.utils;
 
-import org.springframework.util.ResourceUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -12,67 +13,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
+import java.util.Objects;
 
+@Component
 public class FileUtils {
+    private String uploadDirectory;
 
-    /**
-     * Đọc nội dung của file thành một list các dòng.
-     *
-     * @param filePath Đường dẫn tuyệt đối của file.
-     * @return List các dòng trong file.
-     * @throws IOException Nếu có lỗi khi đọc file.
-     */
-    public static List<String> readLines(String filePath) throws IOException {
-        return Files.readAllLines(Paths.get(filePath));
-    }
-
-    /**
-     * Ghi list các dòng vào file.
-     *
-     * @param filePath Đường dẫn tuyệt đối của file.
-     * @param lines    List các dòng cần ghi vào file.
-     * @throws IOException Nếu có lỗi khi ghi vào file.
-     */
-    public static void writeLines(String filePath, List<String> lines) throws IOException {
-        Files.write(Paths.get(filePath), lines);
-    }
-
-    /**
-     * Kiểm tra sự tồn tại của file.
-     *
-     * @param filePath Đường dẫn tuyệt đối của file.
-     * @return true nếu file tồn tại, false nếu không tồn tại.
-     */
-    public static boolean fileExists(String filePath) {
-        return Files.exists(Paths.get(filePath));
-    }
-
-    /**
-     * Xóa file.
-     *
-     * @param filePath Đường dẫn tuyệt đối của file.
-     * @return true nếu xóa thành công, false nếu không xóa được hoặc file không tồn tại.
-     * @throws IOException Nếu có lỗi khi xóa file.
-     */
-    public static boolean deleteFile(String filePath) throws IOException {
-        Path path = Paths.get(filePath);
-        if (Files.exists(path)) {
-            Files.delete(path);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Lấy đường dẫn tuyệt đối của file trong thư mục classpath.
-     *
-     * @param relativePath Đường dẫn tương đối của file trong classpath.
-     * @return Đường dẫn tuyệt đối của file.
-     * @throws IOException Nếu có lỗi khi lấy đường dẫn.
-     */
-    public static String getClasspathFilePath(String relativePath) throws IOException {
-        return ResourceUtils.getFile("classpath:" + relativePath).getAbsolutePath();
+    @Value("${upload-path}")
+    public void setUploadDirectory(String uploadDirectory) {
+        this.uploadDirectory = uploadDirectory;
     }
 
     public static String generateUniqueFileName(String originalFileName) {
@@ -120,6 +69,33 @@ public class FileUtils {
         } else {
             return "";
         }
+    }
+
+    public String uploadFile(MultipartFile file) throws IOException {
+        String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
+        String fileExtension = FileUtils.getFileExtension(originalFileName);
+
+        String subFolder;
+        if (isImageFile(fileExtension)) {
+            subFolder = "images";
+        } else if (isVideoFile(fileExtension)) {
+            subFolder = "videos";
+        } else {
+            subFolder = "other";
+        }
+
+        String folderPath = FileUtils.joinPaths(uploadDirectory, subFolder);
+        Files.createDirectories(Paths.get(folderPath));
+
+        String uniqueFileName = FileUtils.generateUniqueFileName(originalFileName);
+        String filePath = FileUtils.joinPaths(folderPath, uniqueFileName);
+
+        FileUtils.saveFile(file, filePath);
+
+        // Tạo URL dựa trên subFolder và uniqueFileName
+        String baseUrl = "http://localhost:8080/static/";
+
+        return baseUrl + subFolder + "/" + uniqueFileName;
     }
 
     public static boolean isImageFile(String fileExtension) {

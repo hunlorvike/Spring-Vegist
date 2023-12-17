@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/public/hoc-sinh")
+@RequestMapping("/api/v1/public")
 public class HocSinhController {
 
     private final HocSinhService hocSinhService;
@@ -23,20 +23,20 @@ public class HocSinhController {
         this.hocSinhService = hocSinhService;
     }
 
-    @GetMapping("/")
+    @GetMapping("/hoc-sinh")
     public ResponseEntity<List<HocSinhModel>> findAllHocSinhs() {
         List<HocSinhModel> hocSinhs = hocSinhService.findAll();
         return new ResponseEntity<>(hocSinhs, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/hoc-sinh/{id}")
     public ResponseEntity<HocSinhModel> findHocSinhById(@PathVariable Long id) {
         return hocSinhService.findById(id)
                 .map(hocSinhModel -> new ResponseEntity<>(hocSinhModel, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PostMapping("/")
+    @PostMapping("/hoc-sinh")
     public ResponseEntity<HocSinhModel> createHocSinh(
             @RequestParam("name") String name,
             @RequestParam("age") int age,
@@ -60,7 +60,7 @@ public class HocSinhController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/hoc-sinh/{id}")
     public ResponseEntity<Void> deleteHocSinh(@PathVariable Long id) {
         if (hocSinhService.deleleById(id)) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

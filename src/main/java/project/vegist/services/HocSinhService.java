@@ -1,7 +1,6 @@
 package project.vegist.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import project.vegist.dtos.HocSinhDTO;
@@ -14,23 +13,23 @@ import project.vegist.services.impls.CrudService;
 import project.vegist.utils.FileUtils;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhModel> {
     private final HocSinhRepository hocSinhRepository;
     private final AlbumHocSinhRepository albumHocSinhRepository;
-
-    @Value("${upload-path}")
-    private String uploadDirectory;
+    private final FileUtils fileUtils;
 
     @Autowired
-    public HocSinhService(HocSinhRepository hocSinhRepository, AlbumHocSinhRepository albumHocSinhRepository) {
+    public HocSinhService(HocSinhRepository hocSinhRepository, AlbumHocSinhRepository albumHocSinhRepository, FileUtils fileUtils) {
         this.hocSinhRepository = hocSinhRepository;
         this.albumHocSinhRepository = albumHocSinhRepository;
+        this.fileUtils = fileUtils;
     }
 
     @Override
@@ -55,7 +54,7 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
     @Override
     public Optional<HocSinhModel> create(HocSinhDTO hocSinhDTO) throws IOException {
         // Upload avatar và lấy tên file
-        String avatarFileName = uploadFile(hocSinhDTO.getAvatar());
+        String avatarFileName = fileUtils.uploadFile(hocSinhDTO.getAvatar());
 
         // Lưu thông tin HocSinh
         HocSinh hocSinh = new HocSinh();
@@ -66,7 +65,7 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
         // Xử lý các file trong album nếu có
         List<AlbumHocSinh> albumFiles = new ArrayList<>();
         for (MultipartFile albumFile : hocSinhDTO.getAlbumFiles()) {
-            String albumFileName = uploadFile(albumFile);
+            String albumFileName = fileUtils.uploadFile(albumFile);
 
             AlbumHocSinh albumHocSinh = new AlbumHocSinh();
             albumHocSinh.setAssetsPath(albumFileName);
@@ -79,7 +78,6 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
         return Optional.ofNullable(convertToModel(hocSinh));
     }
-
 
     @Override
     public List<HocSinhModel> createAll(List<HocSinhDTO> hocSinhDTOS) {
@@ -144,32 +142,5 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
         hocSinh.setAge(hocSinhDTO.getAge());
     }
 
-    private String uploadFile(MultipartFile file) throws IOException {
-        String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
-        String fileExtension = FileUtils.getFileExtension(originalFileName);
-
-        String subFolder;
-        if (FileUtils.isImageFile(fileExtension)) {
-            subFolder = "images";
-        } else if (FileUtils.isVideoFile(fileExtension)) {
-            subFolder = "videos";
-        } else {
-            subFolder = "other";
-        }
-
-        String folderPath = FileUtils.joinPaths(uploadDirectory, subFolder);
-        Files.createDirectories(Paths.get(folderPath));
-
-        String uniqueFileName = FileUtils.generateUniqueFileName(originalFileName);
-        String filePath = FileUtils.joinPaths(folderPath, uniqueFileName);
-
-        FileUtils.saveFile(file, filePath);
-
-        // Tạo URL dựa trên subFolder và uniqueFileName
-        String baseUrl = "http://localhost:8080/static/";
-        String fileUrl = baseUrl + subFolder + "/" + uniqueFileName;
-
-        return fileUrl;
-    }
 
 }

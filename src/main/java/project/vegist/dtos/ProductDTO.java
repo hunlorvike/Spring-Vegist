@@ -4,8 +4,10 @@ import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -29,9 +31,8 @@ public class ProductDTO {
     @NotBlank(message = "SKU cannot be blank")
     private String SKU;
 
-    @NotBlank(message = "Product thumbnail cannot be blank")
-    @Size(max = 255, message = "Thumbnail path must be less than or equal to 255 characters")
-    private String thumbnail;
+    @NotNull(message = "Product thumbnail cannot be null")
+    private MultipartFile thumbnail;
 
     @Min(value = 0, message = "View count must be greater than or equal to 0")
     private Integer viewCount;
@@ -59,5 +60,9 @@ public class ProductDTO {
     @Size(max = 255, message = "Meta description must be less than or equal to 255 characters")
     private String metaDesc;
 
-    private List<ProductImageDTO> imagesProduct;
+    private List<MultipartFile> imagesProduct;
+
+    public void setImagesProduct(MultipartFile[] imagesProduct) {
+        this.imagesProduct = Arrays.asList(imagesProduct);
+    }
 }
