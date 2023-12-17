@@ -21,7 +21,7 @@ public interface CrudService<Entity, DTO, Model> {
     Optional<Model> create(DTO dto) throws IOException;
 
     @Transactional
-    List<Model> createAll(List<DTO> dtos);
+    List<Model> createAll(List<DTO> dtos) throws IOException;
 
     @Transactional
     Optional<Model> update(Long id, DTO dto);

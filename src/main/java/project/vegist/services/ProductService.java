@@ -45,6 +45,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductModel> findAll() {
         return productRepository.findAll().stream()
                 .map(this::convertToModel)
@@ -52,6 +53,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return productRepository.findAll(pageable).stream()
@@ -60,11 +62,13 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<ProductModel> findById(Long id) {
         return productRepository.findById(id).map(this::convertToModel);
     }
 
     @Override
+    @Transactional
     public Optional<ProductModel> create(ProductDTO productDTO) throws IOException {
         String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail());
         Product newProduct = new Product();
@@ -88,16 +92,45 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     }
 
     @Override
-    public List<ProductModel> createAll(List<ProductDTO> productDTOS) {
-        return null;
+    @Transactional
+    public List<ProductModel> createAll(List<ProductDTO> productDTOS) throws IOException {
+        List<ProductModel> createdProducts = new ArrayList<>();
+
+        for (ProductDTO productDTO : productDTOS) {
+            String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail());
+            Product newProduct = new Product();
+            convertToEntity(productDTO, newProduct);
+            newProduct.setThumbnail(thumbnailFileName);
+            newProduct = productRepository.save(newProduct);
+
+            List<ProductImage> productImages = new ArrayList<>();
+            for (MultipartFile productFile : productDTO.getImagesProduct()) {
+                String productFileName = fileUtils.uploadFile(productFile);
+
+                ProductImage productImage = new ProductImage();
+                productImage.setProduct(newProduct);
+                productImage.setImagePath(productFileName);
+                productImages.add(productImage);
+            }
+
+            productImageRepository.saveAll(productImages);
+
+            ProductModel createdProductModel = convertToModel(newProduct);
+            createdProducts.add(createdProductModel);
+        }
+
+        return createdProducts;
     }
 
+
     @Override
+    @Transactional
     public Optional<ProductModel> update(Long id, ProductDTO productDTO) {
         return Optional.empty();
     }
 
     @Override
+    @Transactional
     public List<ProductModel> updateAll(Map<Long, ProductDTO> longProductDTOMap) {
         return null;
     }
