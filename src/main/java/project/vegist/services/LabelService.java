@@ -37,7 +37,7 @@ public class LabelService implements CrudService<Label, LabelDTO, LabelModel> {
     @Transactional(readOnly = true)
     public List<LabelModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return labelRepository.findAll(pageable).stream()
+        return labelRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

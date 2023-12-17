@@ -45,7 +45,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
     @Transactional(readOnly = true)
     public List<UserActionModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return userActionRepository.findAll(pageable).stream()
+        return userActionRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

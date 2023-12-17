@@ -39,7 +39,7 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
     @Transactional(readOnly = true)
     public List<CouponModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return couponRepository.findAll(pageable).stream()
+        return couponRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

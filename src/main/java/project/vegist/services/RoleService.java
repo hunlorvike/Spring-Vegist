@@ -37,7 +37,7 @@ public class RoleService implements CrudService<Role, RoleDTO, RoleModel> {
     @Transactional(readOnly = true)
     public List<RoleModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return roleRepository.findAll(pageable).stream()
+        return roleRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

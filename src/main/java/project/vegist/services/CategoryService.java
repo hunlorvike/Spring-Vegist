@@ -37,7 +37,7 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
     @Transactional(readOnly = true)
     public List<CategoryModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return categoryRepository.findAll(pageable).stream().map(this::convertToModel).collect(Collectors.toList());
+        return categoryRepository.findAll(pageable).getContent().stream().map(this::convertToModel).collect(Collectors.toList());
     }
 
     @Override

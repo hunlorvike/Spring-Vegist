@@ -45,7 +45,7 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
     @Transactional(readOnly = true)
     public List<InventoryModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return inventoryRepository.findAll(pageable).stream()
+        return inventoryRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

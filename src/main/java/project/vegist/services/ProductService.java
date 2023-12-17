@@ -56,7 +56,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Transactional(readOnly = true)
     public List<ProductModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return productRepository.findAll(pageable).stream()
+        return productRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

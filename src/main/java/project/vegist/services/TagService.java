@@ -39,7 +39,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     @Transactional(readOnly = true)
     public List<TagModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return tagRepository.findAll(pageable).stream()
+        return tagRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }

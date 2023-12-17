@@ -39,7 +39,7 @@ public class UnitService implements CrudService<Unit, UnitDTO, UnitModel> {
     @Transactional(readOnly = true)
     public List<UnitModel> findAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return unitRepository.findAll(pageable).stream()
+        return unitRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }
