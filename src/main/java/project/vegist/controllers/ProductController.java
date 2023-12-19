@@ -31,9 +31,12 @@ public class ProductController {
 
     @GetMapping("/products")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<List<ProductModel>>> getAllProducts() {
+    public ResponseEntity<BaseResponse<List<ProductModel>>> getAllProducts(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
         try {
-            List<ProductModel> products = productService.findAll();
+            List<ProductModel> products = productService.findAll(page, size);
             return ResponseEntity.ok(new SuccessResponse<>(products));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
@@ -114,9 +117,44 @@ public class ProductController {
 
     @PutMapping("/products/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<ProductModel>> updateProduct(@PathVariable Long id,
-                                                                    @RequestBody ProductDTO productDTO) {
+    public ResponseEntity<BaseResponse<ProductModel>> updateProduct(
+            @PathVariable Long id,
+            @RequestParam("productName") String productName,
+            @RequestParam("description") String description,
+            @RequestParam("price") BigDecimal price,
+            @RequestParam(value = "salePrice", required = false) BigDecimal salePrice,
+            @RequestParam("SKU") String SKU,
+            @RequestPart("thumbnail") MultipartFile thumbnail,
+            @RequestPart(value = "imagesProduct", required = false) MultipartFile[] imagesProduct,
+            @RequestParam(value = "viewCount", defaultValue = "0") Integer viewCount,
+            @RequestParam(value = "wishLishCount", defaultValue = "0") Integer wishLishCount,
+            @RequestParam("categoryId") Long categoryId,
+            @RequestParam("labelId") Long labelId,
+            @RequestParam(value = "discount", defaultValue = "0") Integer discount,
+            @RequestParam(value = "iframeVideo", required = false) String iframeVideo,
+            @RequestParam(value = "seoTitle", required = false) String seoTitle,
+            @RequestParam(value = "metaKeys", required = false) String metaKeys,
+            @RequestParam(value = "metaDesc", required = false) String metaDesc) {
         try {
+            // Create ProductDTO manually
+            ProductDTO productDTO = new ProductDTO();
+            productDTO.setProductName(productName);
+            productDTO.setDescription(description);
+            productDTO.setPrice(price);
+            productDTO.setSalePrice(salePrice);
+            productDTO.setSKU(SKU);
+            productDTO.setThumbnail(thumbnail);
+            productDTO.setImagesProduct(imagesProduct);
+            productDTO.setViewCount(viewCount);
+            productDTO.setWishlistCount(wishLishCount);
+            productDTO.setCategoryId(categoryId);
+            productDTO.setLabelId(labelId);
+            productDTO.setDiscount(discount);
+            productDTO.setIframeVideo(iframeVideo);
+            productDTO.setSeoTitle(seoTitle);
+            productDTO.setMetaKeys(metaKeys);
+            productDTO.setMetaDesc(metaDesc);
+
             Optional<ProductModel> updatedProduct = productService.update(id, productDTO);
             return updatedProduct.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -126,6 +164,7 @@ public class ProductController {
                     .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
         }
     }
+
 
     @DeleteMapping("/products/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")

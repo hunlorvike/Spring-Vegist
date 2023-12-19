@@ -20,6 +20,7 @@ import project.vegist.services.ActionService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -36,9 +37,12 @@ public class ActionController {
 
     @GetMapping("/actions")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<List<ActionModel>>> getAllActions() {
+    public ResponseEntity<BaseResponse<List<ActionModel>>> getAllActions(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
         try {
-            List<ActionModel> actions = actionService.findAll();
+            List<ActionModel> actions = actionService.findAll(page, size);
             return ResponseEntity.ok(new SuccessResponse<>(actions));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
@@ -79,6 +83,19 @@ public class ActionController {
         }
     }
 
+    @PostMapping("/actions/batch")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BaseResponse<List<ActionModel>>> createBulkActions(
+            @RequestBody List<ActionDTO> actionDTOList) {
+        try {
+            List<ActionModel> createdActions = actionService.createAll(actionDTOList);
+            return ResponseEntity.ok(new SuccessResponse<>(createdActions));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
     @PutMapping("/actions/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<ActionModel>> updateAction(@PathVariable Long id,
@@ -94,6 +111,19 @@ public class ActionController {
         }
     }
 
+    @PutMapping("/actions/bulk")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BaseResponse<List<ActionModel>>> updateBulkActions(
+            @RequestBody Map<Long, ActionDTO> actionDTOMap) {
+        try {
+            List<ActionModel> updatedActions = actionService.updateAll(actionDTOMap);
+            return ResponseEntity.ok(new SuccessResponse<>(updatedActions));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
     @DeleteMapping("/actions/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteAction(@PathVariable Long id) {
@@ -103,6 +133,22 @@ public class ActionController {
                     ? ResponseEntity.ok(new SuccessResponse<>("Action deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse<>("Action not found"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/actions")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BaseResponse<String>> deleteAllActions(
+            @RequestBody List<Long> actionIds) {
+        try {
+            boolean deleted = actionService.deleteAll(actionIds);
+            return deleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Actions deleted successfully"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("One or more actions not found"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));

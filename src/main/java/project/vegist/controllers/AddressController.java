@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.vegist.dtos.AddressDTO;
-import project.vegist.entities.Address;
 import project.vegist.exceptions.NotReadableException;
 import project.vegist.exceptions.ResourceExistException;
 import project.vegist.exceptions.ResourceNotFoundException;
@@ -20,6 +19,7 @@ import project.vegist.services.AddressService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -76,6 +76,20 @@ public class AddressController {
         }
     }
 
+    @PostMapping("/user-addresses/batch")
+    public ResponseEntity<BaseResponse<List<AddressModel>>> batchCreateUserAddresses(
+            @RequestBody List<AddressDTO> userAddressDTOs) {
+        try {
+            List<AddressModel> createdUserAddresses = addressService.createAll(userAddressDTOs);
+            return ResponseEntity.ok(new SuccessResponse<>(createdUserAddresses, "Batch create successful"));
+        } catch (ResourceExistException | UnauthorizedException | NotReadableException e) {
+            return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList("Failed to batch create user-addresses")));
+        }
+    }
+
     @PutMapping("/user-addresses/{id}")
     public ResponseEntity<BaseResponse<AddressModel>> updateUserAddress(@PathVariable Long id, @Valid @RequestBody AddressDTO addressDTO) {
         try {
@@ -90,6 +104,18 @@ public class AddressController {
         }
     }
 
+    @PutMapping("/user-addresses")
+    public ResponseEntity<BaseResponse<List<AddressModel>>> batchUpdateUserAddresses(
+            @RequestBody Map<Long, AddressDTO> userAddressUpdates) {
+        try {
+            List<AddressModel> updatedUserAddresses = addressService.updateAll(userAddressUpdates);
+            return ResponseEntity.ok(new SuccessResponse<>(updatedUserAddresses, "Batch update successful"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
     @DeleteMapping("user-addresses/{id}")
     public ResponseEntity<BaseResponse<String>> deleteUserAddress(@PathVariable Long id) {
         try {
@@ -98,6 +124,21 @@ public class AddressController {
                     ? ResponseEntity.ok(new SuccessResponse<>("User-address deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse<>("User-address not found"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/user-addresses")
+    public ResponseEntity<BaseResponse<String>> batchDeleteUserAddresses(
+            @RequestBody List<Long> userAddressIds) {
+        try {
+            boolean deleted = addressService.deleteAll(userAddressIds);
+            return deleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Batch delete successful"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("One or more user-addresses not found"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));

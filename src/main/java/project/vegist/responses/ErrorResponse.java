@@ -1,6 +1,5 @@
 package project.vegist.responses;
 
-
 import java.util.List;
 
 public class ErrorResponse<T> extends BaseResponse<T> {
@@ -17,5 +16,3 @@ public class ErrorResponse<T> extends BaseResponse<T> {
     }
 
 }
-
-

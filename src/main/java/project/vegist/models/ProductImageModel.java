@@ -11,4 +11,9 @@ public class ProductImageModel {
     private Long id;
     private Long productId;
     private String imagePath;
+
+    public ProductImageModel(Long productId, String imagePath) {
+        this.productId = productId;
+        this.imagePath = imagePath;
+    }
 }

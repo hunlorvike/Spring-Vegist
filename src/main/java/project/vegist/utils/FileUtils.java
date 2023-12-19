@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 
+import static project.vegist.common.AppConstants.BASE_URL;
+
 @Component
 public class FileUtils {
     private String uploadDirectory;
@@ -71,6 +73,24 @@ public class FileUtils {
         }
     }
 
+    public static String reverseSHA256(String encodedHash) {
+        try {
+            byte[] decodedHash = Base64.getDecoder().decode(encodedHash);
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            byte[] originalBytes = sha256.digest(decodedHash);
+
+            StringBuilder result = new StringBuilder();
+            for (byte b : originalBytes) {
+                result.append(String.format("%02x", b));
+            }
+
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
     public String uploadFile(MultipartFile file) throws IOException {
         String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
         String fileExtension = FileUtils.getFileExtension(originalFileName);
@@ -93,10 +113,50 @@ public class FileUtils {
         FileUtils.saveFile(file, filePath);
 
         // Tạo URL dựa trên subFolder và uniqueFileName
-        String baseUrl = "http://localhost:8080/static/";
 
-        return baseUrl + subFolder + "/" + uniqueFileName;
+        return BASE_URL + subFolder + "/" + uniqueFileName;
     }
+
+    public static String getFileNameFromUrl(String fileUrl) {
+        if (!fileUrl.startsWith(BASE_URL)) {
+            return fileUrl; // Trả về nguyên fileUrl nếu không hợp lệ
+        }
+
+        // Cắt bỏ baseUrl
+        String pathWithoutBaseUrl = fileUrl.substring(BASE_URL.length());
+
+        // Kiểm tra subFolder và cắt bỏ nếu có
+        String subFolder = "";
+        if (pathWithoutBaseUrl.startsWith(subFolder + "/")) {
+            int lastSlashIndex = pathWithoutBaseUrl.lastIndexOf("/");
+            if (lastSlashIndex != -1) {
+                return pathWithoutBaseUrl.substring(lastSlashIndex + 1);
+            }
+        }
+
+        return pathWithoutBaseUrl;
+    }
+
+    public static String getOriginalFileNameFromUrl(String fileUrl) {
+        if (!fileUrl.startsWith(BASE_URL)) {
+            return fileUrl; // Trả về nguyên fileUrl nếu không hợp lệ
+        }
+
+        // Cắt bỏ baseUrl
+        String pathWithoutBaseUrl = fileUrl.substring(BASE_URL.length());
+
+        String subFolder = "";
+        if (pathWithoutBaseUrl.startsWith(subFolder + "/")) {
+            int lastSlashIndex = pathWithoutBaseUrl.lastIndexOf("/");
+            if (lastSlashIndex != -1) {
+                String encodedFileName = pathWithoutBaseUrl.substring(lastSlashIndex + 1);
+                return reverseSHA256(encodedFileName);
+            }
+        }
+
+        return pathWithoutBaseUrl;
+    }
+
 
     public static boolean isImageFile(String fileExtension) {
         return Arrays.asList("jpg", "png", "gif").contains(fileExtension.toLowerCase());

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import project.vegist.dtos.ProductDTO;
-import project.vegist.entities.Label;
 import project.vegist.entities.Product;
 import project.vegist.entities.ProductImage;
 import project.vegist.models.ProductImageModel;
@@ -122,12 +121,46 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
         return createdProducts;
     }
 
-
     @Override
     @Transactional
     public Optional<ProductModel> update(Long id, ProductDTO productDTO) {
+        Optional<Product> existingProduct = productRepository.findById(id);
+        if (existingProduct.isPresent()) {
+            Product product = existingProduct.get();
+            convertToEntity(productDTO, product);
+
+            List<ProductImage> existingImages = productImageRepository.findByProduct_Id(id);
+
+            // Map existing images to their file names
+            Set<String> existingImageFileNames = existingImages.stream()
+                    .map(ProductImage::getFileName)
+                    .collect(Collectors.toSet());
+
+            // Filter out images that are already associated with the product
+            List<ProductImage> newImages = productDTO.getImagesProduct().stream()
+                    .filter(productFile -> !existingImageFileNames.contains(productFile.getOriginalFilename()))
+                    .map(productFile -> {
+                        try {
+                            return new ProductImage(product, fileUtils.uploadFile(productFile));
+                        } catch (IOException e) {
+                            throw new RuntimeException("Error uploading files: " + e.getMessage());
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            existingImages.stream()
+                    .filter(image -> !existingImageFileNames.contains(image.getFileName()))
+                    .forEach(image -> {
+                        productImageRepository.deleteById(image.getId());
+                    });
+
+            productImageRepository.saveAll(newImages);
+
+            return Optional.ofNullable(convertToModel(productRepository.save(product)));
+        }
         return Optional.empty();
     }
+
 
     @Override
     @Transactional

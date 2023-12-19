@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import project.vegist.utils.FileUtils;
 
 import java.time.LocalDateTime;
 
@@ -29,4 +30,12 @@ public class ProductImage {
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
+    public ProductImage(Product product, String imagePath) {
+        this.product = product;
+        this.imagePath = imagePath;
+    }
+
+    public String getFileName() {
+        return FileUtils.getOriginalFileNameFromUrl(imagePath);
+    }
 }

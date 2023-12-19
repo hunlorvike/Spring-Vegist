@@ -34,9 +34,12 @@ public class CouponController {
 
     @GetMapping("/coupons")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<List<CouponModel>>> getAllCoupons() {
+    public ResponseEntity<BaseResponse<List<CouponModel>>> getAllCoupons(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
         try {
-            List<CouponModel> coupons = couponService.findAll();
+            List<CouponModel> coupons = couponService.findAll(page, size);
             return ResponseEntity.ok(new SuccessResponse<>(coupons));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));

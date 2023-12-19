@@ -14,9 +14,9 @@ import project.vegist.responses.ErrorResponse;
 import project.vegist.responses.SuccessResponse;
 import project.vegist.services.CategoryService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/public")
@@ -83,6 +83,31 @@ public class CategoryController {
         }
     }
 
+    @PostMapping("/categories/batch")
+    public ResponseEntity<BaseResponse<List<CategoryModel>>> createAllCategories(@Valid @RequestBody List<CategoryDTO> categoryDTOs) {
+        try {
+            List<String> errors = categoryDTOs.stream()
+                    .flatMap(categoryDTO -> Stream.of(
+                            categoryRepository.existsByName(categoryDTO.getName()) ? "Category with this name already exists" : null,
+                            (categoryDTO.getParentId() != null && !categoryRepository.existsById(categoryDTO.getParentId())) ?
+                                    "Parent category with this id does not exist" : null
+                    ))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            if (!errors.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ErrorResponse<>(errors));
+            }
+
+            List<CategoryModel> createdCategories = categoryService.createAll(categoryDTOs);
+            return ResponseEntity.ok(new SuccessResponse<>(createdCategories, "Categories created successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
 
     @PutMapping("/categories/{id}")
     public ResponseEntity<BaseResponse<CategoryModel>> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO categoryDTO) {
@@ -98,6 +123,17 @@ public class CategoryController {
         }
     }
 
+    @PutMapping("/categories/batch")
+    public ResponseEntity<BaseResponse<List<CategoryModel>>> updateCategories(@Valid @RequestBody Map<Long, CategoryDTO> categoryDTOMap) {
+        try {
+            List<CategoryModel> updatedCategories = categoryService.updateAll(categoryDTOMap);
+            return ResponseEntity.ok(new SuccessResponse<>(updatedCategories, "Categories updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
     @DeleteMapping("/categories/{id}")
     public ResponseEntity<BaseResponse<String>> deleteCategory(@PathVariable Long id) {
         try {
@@ -106,6 +142,20 @@ public class CategoryController {
                     ? ResponseEntity.ok(new SuccessResponse<>("Category deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse<>("Category not found"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/categories")
+    public ResponseEntity<BaseResponse<String>> deleteCategories(@RequestBody List<Long> categoryIds) {
+        try {
+            boolean deleted = categoryService.deleteAll(categoryIds);
+            return deleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Categories deleted successfully"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("Categories not found"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));

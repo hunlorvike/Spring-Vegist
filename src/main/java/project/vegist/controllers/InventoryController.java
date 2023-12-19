@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import project.vegist.dtos.InventoryDTO;
-import project.vegist.exceptions.ResourceExistException;
 import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.models.InventoryModel;
 import project.vegist.repositories.InventoryRepository;
@@ -36,9 +35,12 @@ public class InventoryController {
 
     @GetMapping("/inventories")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BaseResponse<List<InventoryModel>>> getAllInventories() {
+    public ResponseEntity<BaseResponse<List<InventoryModel>>> getAllInventories(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
         try {
-            List<InventoryModel> inventories = inventoryService.findAll();
+            List<InventoryModel> inventories = inventoryService.findAll(page, size);
             return ResponseEntity.ok(new SuccessResponse<>(inventories));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));

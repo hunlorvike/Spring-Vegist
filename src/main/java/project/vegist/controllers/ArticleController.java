@@ -16,6 +16,7 @@ import project.vegist.services.ArticleService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -73,6 +74,18 @@ public class ArticleController {
         }
     }
 
+    @PostMapping("/articles/batch")
+    public ResponseEntity<BaseResponse<List<ArticleModel>>> batchCreateArticles(
+            @RequestBody List<ArticleDTO> articleDTOs) {
+        try {
+            List<ArticleModel> createdArticles = articleService.createAll(articleDTOs);
+            return ResponseEntity.ok(new SuccessResponse<>(createdArticles, "Batch create successful"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList("Failed to batch create articles")));
+        }
+    }
+
     @PutMapping("/articles/{id}")
     public ResponseEntity<BaseResponse<ArticleModel>> updateArticle(@PathVariable Long id, @Valid @RequestBody ArticleDTO articleDTO) {
         try {
@@ -86,6 +99,18 @@ public class ArticleController {
         }
     }
 
+    @PutMapping("/articles/batch")
+    public ResponseEntity<BaseResponse<List<ArticleModel>>> batchUpdateArticles(
+            @RequestBody Map<Long, ArticleDTO> articlesDTOs) {
+        try {
+            List<ArticleModel> updatedArticles = articleService.updateAll(articlesDTOs);
+            return ResponseEntity.ok(new SuccessResponse<>(updatedArticles, "Batch update successful"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList("Failed to batch update articles")));
+        }
+    }
+
     @DeleteMapping("/articles/{id}")
     public ResponseEntity<BaseResponse<String>> deleteArticle(@PathVariable Long id) {
         try {
@@ -94,6 +119,21 @@ public class ArticleController {
                     ? ResponseEntity.ok(new SuccessResponse<>("Article deleted"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse<>("Article not found"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/articles/batch")
+    public ResponseEntity<BaseResponse<String>> batchDeleteArticles(
+            @RequestBody List<Long> articleIds) {
+        try {
+            boolean areDeleted = articleService.deleteAll(articleIds);
+            return areDeleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Batch delete successful"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("Articles not found for deletion"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));

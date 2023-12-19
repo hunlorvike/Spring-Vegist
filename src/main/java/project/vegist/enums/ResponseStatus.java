@@ -1,0 +1,17 @@
+package project.vegist.enums;
+
+public enum ResponseStatus {
+    SUCCESS,
+    FAILED,
+    BAD_REQUEST,
+    UNAUTHORIZED,
+    FORBIDDEN,
+    NOT_FOUND,
+    METHOD_NOT_ALLOWED,
+    CONFLICT,
+    PRECONDITION_FAILED,
+    UNSUPPORTED_MEDIA_TYPE,
+    INTERNAL_ERROR,
+    NOT_IMPLEMENTED,
+    SERVICE_UNAVAILABLE,
+}
