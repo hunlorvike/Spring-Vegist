@@ -124,41 +124,42 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Override
     @Transactional
     public Optional<ProductModel> update(Long id, ProductDTO productDTO) {
-        Optional<Product> existingProduct = productRepository.findById(id);
-        if (existingProduct.isPresent()) {
-            Product product = existingProduct.get();
-            convertToEntity(productDTO, product);
+        return productRepository.findById(id).map(existingProduct -> {
+            convertToEntity(productDTO, existingProduct);
 
-            List<ProductImage> existingImages = productImageRepository.findByProduct_Id(id);
-
-            // Map existing images to their file names
-            Set<String> existingImageFileNames = existingImages.stream()
-                    .map(ProductImage::getFileName)
-                    .collect(Collectors.toSet());
-
-            // Filter out images that are already associated with the product
+            // Update or add new images
+            List<ProductImage> existingImages = existingProduct.getProductImages();
             List<ProductImage> newImages = productDTO.getImagesProduct().stream()
-                    .filter(productFile -> !existingImageFileNames.contains(productFile.getOriginalFilename()))
                     .map(productFile -> {
                         try {
-                            return new ProductImage(product, fileUtils.uploadFile(productFile));
+                            return new ProductImage(existingProduct, fileUtils.uploadFile(productFile));
                         } catch (IOException e) {
                             throw new RuntimeException("Error uploading files: " + e.getMessage());
                         }
                     })
                     .collect(Collectors.toList());
 
-            existingImages.stream()
-                    .filter(image -> !existingImageFileNames.contains(image.getFileName()))
-                    .forEach(image -> {
-                        productImageRepository.deleteById(image.getId());
-                    });
+            // Identify and remove unwanted images
+            Set<String> newImageFileNames = newImages.stream()
+                    .map(ProductImage::getFileName)
+                    .collect(Collectors.toSet());
 
+            existingImages.removeIf(image -> !newImageFileNames.contains(image.getFileName()));
+
+            // Remove unwanted images from the repository
+            existingImages.forEach(image -> {
+                productImageRepository.deleteByProduct_IdAndImagePath(id, image.getImagePath());
+            });
+
+
+            // Save the new images
             productImageRepository.saveAll(newImages);
 
-            return Optional.ofNullable(convertToModel(productRepository.save(product)));
-        }
-        return Optional.empty();
+            // Save changes to the product
+            Product updatedProduct = productRepository.save(existingProduct);
+
+            return convertToModel(updatedProduct);
+        });
     }
 
 

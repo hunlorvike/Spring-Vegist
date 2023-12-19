@@ -17,4 +17,6 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
     @Transactional
     @Modifying
     void deleteByProductIdAndImagePathIn(Long productId, List<String> imagePaths);
+
+    void deleteByProduct_IdAndImagePath(Long id, String imagePath);
 }
