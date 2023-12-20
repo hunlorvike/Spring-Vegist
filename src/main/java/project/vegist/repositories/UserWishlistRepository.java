@@ -6,4 +6,5 @@ import project.vegist.entities.UserWishlist;
 
 @Repository
 public interface UserWishlistRepository extends JpaRepository<UserWishlist, Long> {
+    boolean existsByUserIdAndProductId(Long userId, Long productId);
 }

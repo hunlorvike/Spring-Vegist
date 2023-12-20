@@ -138,7 +138,7 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
         Product product = productRepository.findById(inventory.getProduct().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", inventory.getProduct().getId(), HttpStatus.NOT_FOUND));
 
-        return new InventoryModel(inventory.getId(), inventory.getProduct().getId(), product, inventory.getQuantity(),
+        return new InventoryModel(inventory.getId(), inventory.getProduct().getId(), inventory.getQuantity(),
                 DateTimeUtils.formatLocalDateTime(inventory.getCreatedAt()), DateTimeUtils.formatLocalDateTime(inventory.getUpdatedAt()));
     }
 

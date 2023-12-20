@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/private/labels")
+@RequestMapping("/api/v1/private")
 public class LabelController {
     private final LabelService labelService;
     private final LabelRepository labelRepository;
@@ -32,7 +32,7 @@ public class LabelController {
         this.labelRepository = labelRepository;
     }
 
-    @GetMapping
+    @GetMapping("/labels")
     public ResponseEntity<BaseResponse<List<LabelModel>>> getLabelsWithPagination(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
@@ -45,7 +45,7 @@ public class LabelController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/labels/{id}")
     public ResponseEntity<BaseResponse<LabelModel>> getLabelById(@PathVariable Long id) {
         try {
             Optional<LabelModel> label = labelService.findById(id);
@@ -58,7 +58,7 @@ public class LabelController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/labels")
     public ResponseEntity<BaseResponse<LabelModel>> createLabel(@Valid @RequestBody LabelDTO labelDTO) {
         try {
             if (labelRepository.existsByLabelName(labelDTO.getLabelName())) {
@@ -74,7 +74,7 @@ public class LabelController {
         }
     }
 
-    @PostMapping("/batch")
+    @PostMapping("/labels/batch")
     public ResponseEntity<BaseResponse<List<LabelModel>>> createLabelsBatch(
             @Valid @RequestBody List<LabelDTO> labelDTOs) {
         try {
@@ -85,7 +85,7 @@ public class LabelController {
         }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/labels/{id}")
     public ResponseEntity<BaseResponse<LabelModel>> updateLabel(@PathVariable Long id,
                                                                 @RequestBody LabelDTO labelDTO) {
         try {
@@ -99,7 +99,7 @@ public class LabelController {
         }
     }
 
-    @PutMapping("/batch")
+    @PutMapping("/labels/batch")
     public ResponseEntity<BaseResponse<List<LabelModel>>> updateLabelsBatch(
             @Valid @RequestBody Map<Long, LabelDTO> labelDTOMap) {
         try {
@@ -111,7 +111,7 @@ public class LabelController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/labels/{id}")
     public ResponseEntity<BaseResponse<String>> deleteLabel(@PathVariable Long id) {
         try {
             boolean deleted = labelService.deleleById(id);

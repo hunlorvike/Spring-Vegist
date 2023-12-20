@@ -12,7 +12,7 @@ public class UserWishlistModel {
     private Long id;
     private Long userId;
     private Long productId;
-    private Product product;
+//    private Product product;
     private String createdAt;
     private String updatedAt;
 }

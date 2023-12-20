@@ -140,7 +140,7 @@ public class UserWishlistService implements CrudService<UserWishlist, UserWishli
     @Override
     public UserWishlistModel convertToModel(UserWishlist userWishlist) {
         return new UserWishlistModel(userWishlist.getId(), userWishlist.getUser().getId(), userWishlist.getProduct().getId(),
-                userWishlist.getProduct(), DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()), DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()));
+                DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()), DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()));
     }
 
     @Override

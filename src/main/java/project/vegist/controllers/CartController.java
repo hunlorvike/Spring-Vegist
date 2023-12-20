@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.vegist.dtos.CartDTO;
 import project.vegist.entities.CartItem;
 import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.responses.BaseResponse;
@@ -40,12 +41,9 @@ public class CartController {
 
 
     @PostMapping("/add-to-cart")
-    public ResponseEntity<BaseResponse<String>> addToCart(
-            @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "productId") Long productId,
-            @RequestParam(name = "quantity", defaultValue = "1") Integer quantity) {
+    public ResponseEntity<BaseResponse<String>> addToCart(@RequestBody CartDTO cartDTO) {
         try {
-            cartService.addToCart(userId, productId, quantity);
+            cartService.addToCart(cartDTO);
             return ResponseEntity.ok(new SuccessResponse<>("Sản phẩm đã được thêm vào giỏ hàng"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

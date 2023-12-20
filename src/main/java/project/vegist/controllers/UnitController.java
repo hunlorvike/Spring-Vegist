@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/private/units")
+@RequestMapping("/api/v1/private")
 public class UnitController {
     private final UnitService unitService;
     private final UnitRepository unitRepository;
@@ -33,7 +33,7 @@ public class UnitController {
         this.unitRepository = unitRepository;
     }
 
-    @GetMapping
+    @GetMapping("/units")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<List<UnitModel>>> getUnitsWithPagination(
             @RequestParam(name = "page", defaultValue = "0") int page,
@@ -49,7 +49,7 @@ public class UnitController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/units/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<UnitModel>> getUnitById(@PathVariable Long id) {
         try {
@@ -63,7 +63,7 @@ public class UnitController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/units")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<UnitModel>> createUnit(@Valid @RequestBody UnitDTO unitDTO) {
         try {
@@ -80,7 +80,7 @@ public class UnitController {
         }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/units/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<UnitModel>> updateUnit(@PathVariable Long id,
                                                               @RequestBody UnitDTO unitDTO) {
@@ -95,7 +95,7 @@ public class UnitController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/units/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteUnit(@PathVariable Long id) {
         try {

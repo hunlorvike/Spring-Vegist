@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/private/roles")
+@RequestMapping("/api/v1/private")
 public class RoleController {
     private final RoleService roleService;
     private final RoleRepository roleRepository;
@@ -32,7 +32,7 @@ public class RoleController {
         this.roleRepository = roleRepository;
     }
 
-    @GetMapping
+    @GetMapping("/roles")
     public ResponseEntity<BaseResponse<List<RoleModel>>> getRolesWithPagination(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
@@ -45,7 +45,7 @@ public class RoleController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/roles/{id}")
     public ResponseEntity<BaseResponse<RoleModel>> getRoleById(@PathVariable Long id) {
         try {
             Optional<RoleModel> role = roleService.findById(id);
@@ -58,7 +58,7 @@ public class RoleController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/roles")
     public ResponseEntity<BaseResponse<RoleModel>> createRole(@Valid @RequestBody RoleDTO roleDTO) {
         try {
             if (roleRepository.existsByRoleName(roleDTO.getRoleName())) {
@@ -74,7 +74,7 @@ public class RoleController {
         }
     }
 
-    @PostMapping("/batch")
+    @PostMapping("/roles/batch")
     public ResponseEntity<BaseResponse<List<RoleModel>>> createRolesBatch(
             @Valid @RequestBody List<RoleDTO> roleDTOs) {
         try {
@@ -85,7 +85,7 @@ public class RoleController {
         }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/roles/{id}")
     public ResponseEntity<BaseResponse<RoleModel>> updateRole(@PathVariable Long id,
                                                               @RequestBody RoleDTO roleDTO) {
         try {
@@ -99,7 +99,7 @@ public class RoleController {
         }
     }
 
-    @PutMapping("/batch")
+    @PutMapping("/roles/batch")
     public ResponseEntity<BaseResponse<List<RoleModel>>> updateRolesBatch(
             @Valid @RequestBody Map<Long, RoleDTO> roleDTOMap) {
         try {
@@ -111,7 +111,7 @@ public class RoleController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/roles/{id}")
     public ResponseEntity<BaseResponse<String>> deleteRole(@PathVariable Long id) {
         try {
             boolean deleted = roleService.deleleById(id);

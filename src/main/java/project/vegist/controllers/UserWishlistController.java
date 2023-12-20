@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import project.vegist.dtos.UserWishlistDTO;
 import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.models.UserWishlistModel;
+import project.vegist.repositories.UserWishlistRepository;
 import project.vegist.responses.BaseResponse;
 import project.vegist.responses.ErrorResponse;
 import project.vegist.responses.SuccessResponse;
@@ -21,10 +22,12 @@ import java.util.Optional;
 @RequestMapping("/api/v1/public")
 public class UserWishlistController {
     private final UserWishlistService userWishlistService;
+    private final UserWishlistRepository userWishlistRepository;
 
     @Autowired
-    public UserWishlistController(UserWishlistService userWishlistService) {
+    public UserWishlistController(UserWishlistService userWishlistService, UserWishlistRepository userWishlistRepository) {
         this.userWishlistService = userWishlistService;
+        this.userWishlistRepository = userWishlistRepository;
     }
 
     @GetMapping("/user-wishlists")
@@ -60,6 +63,15 @@ public class UserWishlistController {
     @PostMapping("/user-wishlists")
     public ResponseEntity<BaseResponse<UserWishlistModel>> createUserWishlist(@Valid @RequestBody UserWishlistDTO wishlistDTO) {
         try {
+            Long userId = wishlistDTO.getUserId();
+            Long productId = wishlistDTO.getProductId();
+
+            // Check if the wishlist item already exists for the given user and product
+            if (userWishlistRepository.existsByUserIdAndProductId(userId, productId)) {
+                return ResponseEntity.badRequest().body(new ErrorResponse<>("Product already exists in user's wishlist"));
+            }
+
+            // Continue with creating the wishlist item
             Optional<UserWishlistModel> createdWishlist = userWishlistService.create(wishlistDTO);
             return createdWishlist.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -69,6 +81,7 @@ public class UserWishlistController {
                     .body(new ErrorResponse<>(e.getMessage()));
         }
     }
+
 
     @PutMapping("/user-wishlists/{id}")
     public ResponseEntity<BaseResponse<UserWishlistModel>> updateUserWishlist(@PathVariable Long id, @Valid @RequestBody UserWishlistDTO wishlistDTO) {

@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.vegist.dtos.CartDTO;
+import project.vegist.dtos.CartItemDTO;
 import project.vegist.entities.Cart;
 import project.vegist.entities.CartItem;
 import project.vegist.entities.Product;
@@ -30,18 +32,22 @@ public class CartService {
     @Autowired
     private ProductRepository productRepository;
 
-    public void addToCart(Long userId, Long productId, Integer quantity) {
-        // Kiểm tra xem người dùng đã có giỏ hàng chưa
+    public void addToCart(CartDTO cartDTO) {
+        Long userId = cartDTO.getUserId();
         Cart cart = cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING)
-
                 .orElseGet(() -> createCart(userId));
 
-        // Lấy thông tin sản phẩm từ database
+        for (CartItemDTO cartItemDTO : cartDTO.getCartItems()) {
+            Long productId = cartItemDTO.getProductId();
+            Integer quantity = cartItemDTO.getQuantity();
+            addToCart(cart, productId, quantity);
+        }
+    }
+
+    private void addToCart(Cart cart, Long productId, Integer quantity) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId, HttpStatus.NOT_FOUND));
 
-
-        // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
         Optional<CartItem> existingItem = cart.getCartItems().stream()
                 .filter(item -> item.getProduct().getId().equals(productId))
                 .findFirst();
@@ -50,7 +56,6 @@ public class CartService {
             CartItem item = existingItem.get();
             item.setQuantity(item.getQuantity() + quantity);
             item.setPrice(product.getPrice());
-            item.setUpdatedAt(LocalDateTime.now());
         } else {
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
