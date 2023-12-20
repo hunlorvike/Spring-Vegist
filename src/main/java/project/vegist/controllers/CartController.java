@@ -1,36 +1,52 @@
 package project.vegist.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.vegist.dtos.CartDTO;
-import project.vegist.entities.CartItem;
 import project.vegist.exceptions.ResourceNotFoundException;
+import project.vegist.models.CartModel;
+import project.vegist.repositories.CartItemRepository;
+import project.vegist.repositories.CartRepository;
+import project.vegist.repositories.ProductRepository;
+import project.vegist.repositories.UserRepository;
 import project.vegist.responses.BaseResponse;
 import project.vegist.responses.ErrorResponse;
 import project.vegist.responses.SuccessResponse;
 import project.vegist.services.CartService;
 
-import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/public")
 public class CartController {
+
     private final CartService cartService;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository) {
         this.cartService = cartService;
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
     }
 
-    @GetMapping("/user-cart-items")
-    public ResponseEntity<BaseResponse<List<CartItem>>> getUserCartItems(
-            @RequestParam(name = "userId") Long userId) {
+    @GetMapping("/carts")
+    public ResponseEntity<BaseResponse<List<CartModel>>> getAllCarts(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
         try {
-            List<CartItem> cartItemModels = cartService.getCartItems(userId);
-            return ResponseEntity.ok(new SuccessResponse<>(cartItemModels, "Thành công"));
+            List<CartModel> cartModels = cartService.findAll(page, size);
+            return ResponseEntity.ok(new SuccessResponse<>(cartModels, "Thành công"));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
         } catch (Exception e) {
@@ -39,51 +55,13 @@ public class CartController {
         }
     }
 
-
-    @PostMapping("/add-to-cart")
-    public ResponseEntity<BaseResponse<String>> addToCart(@RequestBody CartDTO cartDTO) {
+    @GetMapping("/carts/{id}")
+    public ResponseEntity<BaseResponse<CartModel>> getCartById(@PathVariable Long id) {
         try {
-            cartService.addToCart(cartDTO);
-            return ResponseEntity.ok(new SuccessResponse<>("Sản phẩm đã được thêm vào giỏ hàng"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(e.getMessage()));
-        }
-    }
-
-    @PostMapping("/update-cart-item")
-    public ResponseEntity<BaseResponse<String>> updateCartItem(
-            @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "itemId") Long itemId,
-            @RequestParam(name = "quantity") Integer quantity) {
-        try {
-            cartService.updateCartItemQuantity(userId, itemId, quantity);
-            return ResponseEntity.ok(new SuccessResponse<>("Số lượng sản phẩm trong giỏ hàng đã được cập nhật"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(e.getMessage()));
-        }
-    }
-
-    @DeleteMapping("/remove-from-cart")
-    public ResponseEntity<BaseResponse<String>> removeFromCart(
-            @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "itemId") Long itemId) {
-        try {
-            cartService.deleteCartItem(userId, itemId);
-            return ResponseEntity.ok(new SuccessResponse<>("Sản phẩm đã được xóa khỏi giỏ hàng"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(e.getMessage()));
-        }
-    }
-
-    @GetMapping("/user-cart-total")
-    public ResponseEntity<BaseResponse<BigDecimal>> getUserCartTotal(
-            @RequestParam(name = "userId") Long userId) {
-        try {
-            BigDecimal cartTotal = cartService.calculateCartTotal(userId);
-            return ResponseEntity.ok(new SuccessResponse<>(cartTotal, "Thành công"));
+            Optional<CartModel> cartModel = cartService.findById(id);
+            return cartModel.map(value -> ResponseEntity.ok((BaseResponse<CartModel>) new SuccessResponse<>(value, null)))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new BaseResponse<>("failed", "Cart not found", null)));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(e.getStatus()).body(new ErrorResponse<>(e.getMessage()));
         } catch (Exception e) {
@@ -92,39 +70,55 @@ public class CartController {
         }
     }
 
-    @PostMapping("/clear-cart")
-    public ResponseEntity<BaseResponse<String>> clearUserCart(
-            @RequestParam(name = "userId") Long userId) {
+    @PostMapping("/carts")
+    public ResponseEntity<BaseResponse<CartModel>> createCart(@Valid @RequestBody CartDTO cartDTO) {
         try {
-            cartService.clearCart(userId);
-            return ResponseEntity.ok(new SuccessResponse<>("Giỏ hàng đã được xóa sạch"));
+            Optional<CartModel> createdCart = cartService.create(cartDTO);
+            return createdCart.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(new ErrorResponse<>(Collections.singletonList("Failed to create cart"))));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
+    @PutMapping("/carts/{id}")
+    public ResponseEntity<BaseResponse<CartModel>> updateCart(@PathVariable Long id, @Valid @RequestBody CartDTO cartDTO) {
+        try {
+            Optional<CartModel> updatedCart = cartService.update(id, cartDTO);
+            return updatedCart.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse<>(Collections.singletonList("Cart not found"))));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
+    @DeleteMapping("/carts/{id}")
+    public ResponseEntity<BaseResponse<String>> deleteCart(@PathVariable Long id) {
+        try {
+            boolean deleted = cartService.deleleById(id);
+            return deleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Cart deleted successfully"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("Cart not found"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));
         }
     }
 
-    @PostMapping("/apply-discount-to-cart")
-    public ResponseEntity<BaseResponse<String>> applyDiscountToUserCart(
-            @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "discountRate") BigDecimal discountRate) {
+    @DeleteMapping("/carts")
+    public ResponseEntity<BaseResponse<String>> deleteCarts(@RequestBody List<Long> cartIds) {
         try {
-            cartService.applyDiscountToCart(userId, discountRate);
-            return ResponseEntity.ok(new SuccessResponse<>("Giảm giá đã được áp dụng cho giỏ hàng"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(e.getMessage()));
-        }
-    }
-
-    @PostMapping("/apply-discount-to-cart-item")
-    public ResponseEntity<BaseResponse<String>> applyDiscountToCartItem(
-            @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "itemId") Long itemId,
-            @RequestParam(name = "discountRate") BigDecimal discountRate) {
-        try {
-            cartService.applyDiscountToCartItem(userId, itemId, discountRate);
-            return ResponseEntity.ok(new SuccessResponse<>("Giảm giá đã được áp dụng cho sản phẩm trong giỏ hàng"));
+            boolean deleted = cartService.deleteAll(cartIds);
+            return deleted
+                    ? ResponseEntity.ok(new SuccessResponse<>("Carts deleted successfully"))
+                    : ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse<>("Carts not found"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse<>(e.getMessage()));

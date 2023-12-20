@@ -1,11 +1,10 @@
 package project.vegist.dtos;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import project.vegist.enums.CartStatus;
 
 import java.util.List;
 
@@ -19,7 +18,22 @@ public class CartDTO {
     @Valid
     private List<CartItemDTO> cartItems;
 
-    @NotNull(message = "Cart status cannot be null")
-    private CartStatus status;
 }
-
+/*
+{
+  "userId": 1,
+  "cartItems": [
+    {
+      "productId": 101,
+      "quantity": 2,
+      "price": 19.99
+    },
+    {
+      "productId": 102,
+      "quantity": 1,
+      "price": 29.99
+    }
+  ],
+  "status": "PENDING"
+}
+*/

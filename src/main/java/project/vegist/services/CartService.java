@@ -1,188 +1,191 @@
 package project.vegist.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.CartDTO;
 import project.vegist.dtos.CartItemDTO;
 import project.vegist.entities.Cart;
 import project.vegist.entities.CartItem;
-import project.vegist.entities.Product;
-import project.vegist.entities.User;
-import project.vegist.enums.CartStatus;
-import project.vegist.exceptions.ResourceNotFoundException;
+import project.vegist.models.CartItemModel;
+import project.vegist.models.CartModel;
+import project.vegist.repositories.CartItemRepository;
 import project.vegist.repositories.CartRepository;
 import project.vegist.repositories.ProductRepository;
+import project.vegist.repositories.UserRepository;
+import project.vegist.services.impls.CrudService;
+import project.vegist.utils.DateTimeUtils;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional
-public class CartService {
-    @Autowired
-    private CartRepository cartRepository;
+public class CartService implements CrudService<Cart, CartDTO, CartModel> {
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    private ProductService productService;
-
-    @Autowired
-    private ProductRepository productRepository;
-
-    public void addToCart(CartDTO cartDTO) {
-        Long userId = cartDTO.getUserId();
-        Cart cart = cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING)
-                .orElseGet(() -> createCart(userId));
-
-        for (CartItemDTO cartItemDTO : cartDTO.getCartItems()) {
-            Long productId = cartItemDTO.getProductId();
-            Integer quantity = cartItemDTO.getQuantity();
-            addToCart(cart, productId, quantity);
-        }
-    }
-
-    private void addToCart(Cart cart, Long productId, Integer quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", productId, HttpStatus.NOT_FOUND));
-
-        Optional<CartItem> existingItem = cart.getCartItems().stream()
-                .filter(item -> item.getProduct().getId().equals(productId))
-                .findFirst();
-
-        if (existingItem.isPresent()) {
-            CartItem item = existingItem.get();
-            item.setQuantity(item.getQuantity() + quantity);
-            item.setPrice(product.getPrice());
-        } else {
-            CartItem newItem = new CartItem();
-            newItem.setCart(cart);
-            newItem.setProduct(product);
-            newItem.setQuantity(quantity);
-            newItem.setPrice(product.getPrice());
-            cart.getCartItems().add(newItem);
-        }
-
-        cartRepository.save(cart);
-    }
-
-    public void deleteCartItem(Long userId, Long itemId) {
-        Cart cart = cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart", userId, HttpStatus.NOT_FOUND));
-
-        // Find the cart item by ID
-        Optional<CartItem> cartItemOptional = cart.getCartItems().stream()
-                .filter(item -> item.getId().equals(itemId))
-                .findFirst();
-
-        if (cartItemOptional.isPresent()) {
-            CartItem cartItem = cartItemOptional.get();
-            cart.getCartItems().remove(cartItem);
-            cartRepository.save(cart);
-        } else {
-            throw new ResourceNotFoundException("CartItem", itemId, HttpStatus.NOT_FOUND);
-        }
-    }
-
-    public void updateCartItemQuantity(Long userId, Long itemId, Integer newQuantity) {
-        Cart cart = cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart", userId, HttpStatus.NOT_FOUND));
-
-        // Find the cart item by ID
-        Optional<CartItem> cartItemOptional = cart.getCartItems().stream()
-                .filter(item -> item.getId().equals(itemId))
-                .findFirst();
-
-        if (cartItemOptional.isPresent()) {
-            CartItem cartItem = cartItemOptional.get();
-            if (newQuantity > 0) {
-                cartItem.setQuantity(newQuantity);
-                cartRepository.save(cart);
-            } else {
-                throw new IllegalArgumentException("New quantity should be greater than 0");
-            }
-        } else {
-            throw new ResourceNotFoundException("CartItem", itemId, HttpStatus.NOT_FOUND);
-        }
-    }
-
-    public Cart getUserCart(Long userId) {
-        return cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart", userId, HttpStatus.NOT_FOUND));
+    public CartService(CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository) {
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
     }
 
 
-    public List<CartItem> getCartItems(Long userId) {
-        Cart cart = getUserCart(userId);
-        return cart.getCartItems();
+    @Override
+    @Transactional(readOnly = true)
+    public List<CartModel> findAll() {
+        return cartRepository.findAll().stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
-    public BigDecimal calculateCartTotal(Long userId) {
-        List<CartItem> cartItems = getCartItems(userId);
-        return cartItems.stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    @Override
+    @Transactional(readOnly = true)
+    public List<CartModel> findAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return cartRepository.findAll(pageable).getContent().stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
-    public void clearCart(Long userId) {
-        Cart cart = getUserCart(userId);
-        cart.getCartItems().clear();
-        cartRepository.save(cart);
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CartModel> findById(Long id) {
+        return cartRepository.findById(id).map(this::convertToModel);
     }
 
-    public void updateCartStatus(Long userId, CartStatus newStatus) {
-        Cart cart = getUserCart(userId);
-        cart.setStatus(newStatus);
-        cartRepository.save(cart);
+    @Override
+    @Transactional
+    public Optional<CartModel> create(CartDTO cartDTO) throws IOException {
+        Cart newCart = new Cart();
+        convertToEntity(cartDTO, newCart);
+        newCart = cartRepository.save(newCart);
+        return Optional.ofNullable(convertToModel(newCart));
     }
 
-    public BigDecimal calculateCartItemTotal(Long userId, Long itemId) {
-        Cart cart = getUserCart(userId);
-        CartItem cartItem = findCartItemById(cart, itemId);
-        return cartItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-    }
+    @Override
+    @Transactional
+    public List<CartModel> createAll(List<CartDTO> cartDTOS) throws IOException {
+        List<CartModel> createdCarts = new ArrayList<>();
 
-    public BigDecimal calculateCartTotalWithDiscount(Long userId, BigDecimal discountRate) {
-        BigDecimal cartTotal = calculateCartTotal(userId);
-        BigDecimal discountAmount = cartTotal.multiply(discountRate);
-        return cartTotal.subtract(discountAmount);
-    }
-
-    public void applyDiscountToCartItem(Long userId, Long itemId, BigDecimal discountRate) {
-        Cart cart = getUserCart(userId);
-        CartItem cartItem = findCartItemById(cart, itemId);
-        BigDecimal discountedPrice = cartItem.getPrice().multiply(BigDecimal.ONE.subtract(discountRate));
-        cartItem.setPrice(discountedPrice);
-        cartRepository.save(cart);
-    }
-
-    public void applyDiscountToCart(Long userId, BigDecimal discountRate) {
-        Cart cart = getUserCart(userId);
-        List<CartItem> cartItems = cart.getCartItems();
-
-        for (CartItem cartItem : cartItems) {
-            BigDecimal discountedPrice = cartItem.getPrice().multiply(BigDecimal.ONE.subtract(discountRate));
-            cartItem.setPrice(discountedPrice);
+        for (CartDTO cartDTO : cartDTOS) {
+            Cart newCart = new Cart();
+            convertToEntity(cartDTO, newCart);
+            newCart = cartRepository.save(newCart);
+            CartModel createdCartModel = convertToModel(newCart);
+            createdCarts.add(createdCartModel);
         }
 
-        cartRepository.save(cart);
+        return createdCarts;
     }
 
-    private CartItem findCartItemById(Cart cart, Long itemId) {
-        return cart.getCartItems().stream()
-                .filter(item -> item.getId().equals(itemId))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("CartItem", itemId, HttpStatus.NOT_FOUND));
+    @Override
+    @Transactional
+    public Optional<CartModel> update(Long id, CartDTO cartDTO) {
+        return cartRepository.findById(id).map(existingCart -> {
+            convertToEntity(cartDTO, existingCart);
+            Cart updatedCart = cartRepository.save(existingCart);
+            return convertToModel(updatedCart);
+        });
     }
 
+    @Override
+    @Transactional
+    public List<CartModel> updateAll(Map<Long, CartDTO> longCartDTOMap) {
+        List<CartModel> updatedCarts = new ArrayList<>();
 
-    private Cart createCart(Long userId) {
-        Cart cart = new Cart();
-        User user = new User();
-        user.setId(userId);
-        cart.setUser(user);
-        return cartRepository.save(cart);
+        for (Map.Entry<Long, CartDTO> entry : longCartDTOMap.entrySet()) {
+            Long cartId = entry.getKey();
+            CartDTO cartDTO = entry.getValue();
+
+            cartRepository.findById(cartId).ifPresent(existingCart -> {
+                convertToEntity(cartDTO, existingCart);
+                Cart updatedCart = cartRepository.save(existingCart);
+                updatedCarts.add(convertToModel(updatedCart));
+            });
+        }
+
+        return updatedCarts;
     }
+
+    @Override
+    @Transactional
+    public boolean deleleById(Long id) {
+        if (cartRepository.existsById(id)) {
+            cartRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteAll(List<Long> ids) {
+        List<Cart> cartsToDelete = cartRepository.findAllById(ids);
+        cartRepository.deleteAll(cartsToDelete);
+        return true;
+    }
+
+    @Override
+    public List<CartModel> search(String keywords) {
+        return null;
+    }
+
+    @Override
+    public CartModel convertToModel(Cart cart) {
+        List<CartItemModel> cartItemModels = cart.getCartItems().stream()
+                .map(this::convertCartItemToModel)
+                .collect(Collectors.toList());
+
+        return new CartModel(
+                cart.getId(),
+                cart.getUser().getId(),
+                cartItemModels,
+                cart.getStatus(),
+                DateTimeUtils.formatLocalDateTime(cart.getCreatedAt()),
+                DateTimeUtils.formatLocalDateTime(cart.getUpdatedAt())
+        );
+    }
+
+    private CartItemModel convertCartItemToModel(CartItem cartItem) {
+        return new CartItemModel(
+                cartItem.getId(),
+                cartItem.getCart().getId(),
+                cartItem.getProduct().getId(),
+                cartItem.getQuantity(),
+                cartItem.getPrice(),
+                DateTimeUtils.formatLocalDateTime(cartItem.getCreatedAt()),
+                DateTimeUtils.formatLocalDateTime(cartItem.getUpdatedAt())
+        );
+    }
+
+    @Override
+    public void convertToEntity(CartDTO cartDTO, Cart cart) {
+        cart.setUser(userRepository.findById(cartDTO.getUserId())
+                .orElseThrow(() -> new NoSuchElementException("User not found")));
+
+        List<CartItem> cartItems = cartDTO.getCartItems().stream()
+                .map(cartItemDTO -> convertCartItemDTOToEntity(cartItemDTO, cart))
+                .collect(Collectors.toList());
+
+        cart.setCartItems(cartItems);
+    }
+
+    private CartItem convertCartItemDTOToEntity(CartItemDTO cartItemDTO, Cart cart) {
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setProduct(productRepository.findById(cartItemDTO.getProductId())
+                .orElseThrow(() -> new NoSuchElementException("Product not found")));
+        cartItem.setQuantity(cartItemDTO.getQuantity());
+        cartItem.setPrice(cartItemDTO.getPrice());
+        return cartItem;
+    }
+
 }
