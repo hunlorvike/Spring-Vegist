@@ -25,5 +25,10 @@ public class ProductUnit {
     @ManyToOne
     @JoinColumn(name = "unit_id", nullable = false, foreignKey = @ForeignKey(name = "fk_product_units_units"))
     private Unit unit;
+
+    public ProductUnit(Product product, Unit unit) {
+        this.product = product;
+        this.unit = unit;
+    }
 }
 

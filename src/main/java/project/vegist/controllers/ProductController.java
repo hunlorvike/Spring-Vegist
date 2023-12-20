@@ -78,28 +78,14 @@ public class ProductController {
             @RequestParam(value = "iframeVideo", required = false) String iframeVideo,
             @RequestParam(value = "seoTitle", required = false) String seoTitle,
             @RequestParam(value = "metaKeys", required = false) String metaKeys,
-            @RequestParam(value = "metaDesc", required = false) String metaDesc) {
+            @RequestParam(value = "metaDesc", required = false) String metaDesc,
+            @RequestParam(value = "unitIds", required = false) List<Long> unitIds) {
         if (thumbnail != null || imagesProduct != null) {
             try {
-                // Create ProductDTO manually
-                ProductDTO productDTO = new ProductDTO();
-                productDTO.setProductName(productName);
-                productDTO.setDescription(description);
-                productDTO.setPrice(price);
-                productDTO.setSalePrice(salePrice);
-                productDTO.setSKU(SKU);
-                productDTO.setThumbnail(thumbnail);
-                productDTO.setImagesProduct(imagesProduct);
-                productDTO.setViewCount(viewCount);
-                productDTO.setWishlistCount(wishLishCount);
-                productDTO.setCategoryId(categoryId);
-                productDTO.setLabelId(labelId);
-                productDTO.setDiscount(discount);
-                productDTO.setIframeVideo(iframeVideo);
-                productDTO.setSeoTitle(seoTitle);
-                productDTO.setMetaKeys(metaKeys);
-                productDTO.setMetaDesc(metaDesc);
-
+                ProductDTO productDTO = new ProductDTO(productName, description, price, salePrice, SKU,
+                        thumbnail, viewCount, wishLishCount, categoryId, labelId, discount, iframeVideo,
+                        seoTitle, metaKeys, metaDesc, unitIds, imagesProduct
+                );
                 Optional<ProductModel> createdProduct = productService.create(productDTO);
                 return createdProduct.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
                         .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -134,26 +120,13 @@ public class ProductController {
             @RequestParam(value = "iframeVideo", required = false) String iframeVideo,
             @RequestParam(value = "seoTitle", required = false) String seoTitle,
             @RequestParam(value = "metaKeys", required = false) String metaKeys,
-            @RequestParam(value = "metaDesc", required = false) String metaDesc) {
+            @RequestParam(value = "metaDesc", required = false) String metaDesc,
+            @RequestParam(value = "unitIds", required = false) List<Long> unitIds) {
         try {
-            // Create ProductDTO manually
-            ProductDTO productDTO = new ProductDTO();
-            productDTO.setProductName(productName);
-            productDTO.setDescription(description);
-            productDTO.setPrice(price);
-            productDTO.setSalePrice(salePrice);
-            productDTO.setSKU(SKU);
-            productDTO.setThumbnail(thumbnail);
-            productDTO.setImagesProduct(imagesProduct);
-            productDTO.setViewCount(viewCount);
-            productDTO.setWishlistCount(wishLishCount);
-            productDTO.setCategoryId(categoryId);
-            productDTO.setLabelId(labelId);
-            productDTO.setDiscount(discount);
-            productDTO.setIframeVideo(iframeVideo);
-            productDTO.setSeoTitle(seoTitle);
-            productDTO.setMetaKeys(metaKeys);
-            productDTO.setMetaDesc(metaDesc);
+            ProductDTO productDTO = new ProductDTO(productName, description, price, salePrice, SKU,
+                    thumbnail, viewCount, wishLishCount, categoryId, labelId, discount, iframeVideo,
+                    seoTitle, metaKeys, metaDesc, unitIds, imagesProduct
+            );
 
             Optional<ProductModel> updatedProduct = productService.update(id, productDTO);
             return updatedProduct.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))

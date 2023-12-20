@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.web.multipart.MultipartFile;
 import project.vegist.utils.FileUtils;
 
 import java.time.LocalDateTime;
@@ -33,6 +34,15 @@ public class ProductImage {
     public ProductImage(Product product, String imagePath) {
         this.product = product;
         this.imagePath = imagePath;
+    }
+
+    public ProductImage(Product product, MultipartFile file) {
+        this.product = product;
+        try {
+            this.imagePath = FileUtils.generateUniqueFileName(file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getFileName() {

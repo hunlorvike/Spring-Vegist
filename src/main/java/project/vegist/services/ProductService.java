@@ -3,18 +3,20 @@ package project.vegist.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import project.vegist.dtos.ProductDTO;
 import project.vegist.entities.Product;
 import project.vegist.entities.ProductImage;
+import project.vegist.entities.ProductUnit;
+import project.vegist.entities.Unit;
+import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.models.ProductImageModel;
 import project.vegist.models.ProductModel;
-import project.vegist.repositories.CategoryRepository;
-import project.vegist.repositories.LabelRepository;
-import project.vegist.repositories.ProductImageRepository;
-import project.vegist.repositories.ProductRepository;
+import project.vegist.models.ProductUnitModel;
+import project.vegist.repositories.*;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
 import project.vegist.utils.FileUtils;
@@ -30,16 +32,20 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     private final ProductImageRepository productImageRepository;
     private final CategoryRepository categoryRepository;
     private final LabelRepository labelRepository;
+    private final ProductUnitRepository productUnitRepository;
+    private final UnitRepository unitRepository;
     private final FileUtils fileUtils;
 
     @Autowired
     public ProductService(ProductRepository productRepository, ProductImageRepository productImageRepository,
-                          CategoryRepository categoryRepository, LabelRepository labelRepository, FileUtils fileUtils) {
+                          CategoryRepository categoryRepository, LabelRepository labelRepository, FileUtils fileUtils, ProductUnitRepository productUnitRepository, UnitRepository unitRepository) {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.categoryRepository = categoryRepository;
         this.labelRepository = labelRepository;
         this.fileUtils = fileUtils;
+        this.productUnitRepository = productUnitRepository;
+        this.unitRepository = unitRepository;
     }
 
 
@@ -69,25 +75,42 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Override
     @Transactional
     public Optional<ProductModel> create(ProductDTO productDTO) throws IOException {
+        // Save the new product
         String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail());
         Product newProduct = new Product();
         convertToEntity(productDTO, newProduct);
         newProduct.setThumbnail(thumbnailFileName);
         newProduct = productRepository.save(newProduct);
 
-        List<ProductImage> productImages = new ArrayList<>();
-        for (MultipartFile productFile : productDTO.getImagesProduct()) {
-            String productFileName = fileUtils.uploadFile(productFile);
+        final Product finalProduct = newProduct; // Make newProduct effectively final
 
-            ProductImage productImage = new ProductImage();
-            productImage.setProduct(newProduct);
-            productImage.setImagePath(productFileName);
-            productImages.add(productImage);
-        }
+        // Save the product units
+        List<ProductUnit> productUnits = productDTO.getUnitIds().stream()
+                .map(unitId -> new ProductUnit(finalProduct, getUnitById(unitId)))
+                .collect(Collectors.toList());
+
+        productUnitRepository.saveAll(productUnits);
+
+        List<ProductImage> productImages = productDTO.getImagesProduct().stream()
+                .map(productFile -> {
+                    try {
+                        String productFileName = fileUtils.uploadFile(productFile);
+                        return new ProductImage(finalProduct, productFileName);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(Collectors.toList());
 
         productImageRepository.saveAll(productImages);
 
-        return Optional.ofNullable(convertToModel(newProduct));
+        return Optional.ofNullable(convertToModel(finalProduct));
+    }
+
+
+    private Unit getUnitById(Long unitId) {
+        return unitRepository.findById(unitId)
+                .orElseThrow(() -> new NoSuchElementException("Unit not found"));
     }
 
     @Override
@@ -127,33 +150,78 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
         return productRepository.findById(id).map(existingProduct -> {
             convertToEntity(productDTO, existingProduct);
 
-            // Update or add new images
-            List<ProductImage> existingImages = existingProduct.getProductImages();
-            List<ProductImage> newImages = productDTO.getImagesProduct().stream()
-                    .map(productFile -> {
-                        try {
-                            return new ProductImage(existingProduct, fileUtils.uploadFile(productFile));
-                        } catch (IOException e) {
-                            throw new RuntimeException("Error uploading files: " + e.getMessage());
-                        }
+            List<ProductUnit> existingProductUnits = existingProduct.getProductUnits();
+
+            // Identify units to be removed
+            Set<Long> updatedUnitIds = new HashSet<>(productDTO.getUnitIds());
+            Set<Long> existingUnitIds = existingProductUnits.stream()
+                    .map(productUnit -> productUnit.getUnit().getId())
+                    .collect(Collectors.toSet());
+
+            Set<Long> unitsToRemove = existingUnitIds.stream()
+                    .filter(unitId -> !updatedUnitIds.contains(unitId))
+                    .collect(Collectors.toSet());
+
+            // Remove unwanted units from the repository
+            existingProductUnits.removeIf(productUnit -> unitsToRemove.contains(productUnit.getUnit().getId()));
+            unitsToRemove.forEach(unitId -> {
+                Unit unitToRemove = unitRepository.findById(unitId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Unit", unitId, HttpStatus.CONFLICT));
+                ProductUnit productUnitToRemove = new ProductUnit(existingProduct, unitToRemove);
+                productUnitRepository.delete(productUnitToRemove);
+            });
+
+            // Identify units to be added
+            List<ProductUnit> unitsToAdd = updatedUnitIds.stream()
+                    .filter(unitId -> !existingUnitIds.contains(unitId))
+                    .map(unitId -> {
+                        Unit unit = getUnitById(unitId);
+                        return new ProductUnit(existingProduct, unit);
                     })
                     .collect(Collectors.toList());
 
-            // Identify and remove unwanted images
-            Set<String> newImageFileNames = newImages.stream()
-                    .map(ProductImage::getFileName)
+            // Save the new units
+            productUnitRepository.saveAll(unitsToAdd);
+
+            List<ProductImage> existingProductImages = existingProduct.getProductImages();
+
+            // Identify images to be removed
+            Set<String> existingImageFileNames = existingProductImages.stream()
+                    .map(productImage -> FileUtils.getFileNameFromUrl(productImage.getImagePath()))
                     .collect(Collectors.toSet());
 
-            existingImages.removeIf(image -> !newImageFileNames.contains(image.getFileName()));
+            Set<String> updatedImageFileNames = productDTO.getImagesProduct().stream()
+                    .map(productFile -> {
+                        try {
+                            return FileUtils.generateUniqueFileName(productFile.getOriginalFilename());
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toSet());
+
+            Set<String> imagesToRemove = existingImageFileNames.stream()
+                    .filter(fileName -> !updatedImageFileNames.contains(fileName))
+                    .collect(Collectors.toSet());
 
             // Remove unwanted images from the repository
-            existingImages.forEach(image -> {
-                productImageRepository.deleteByProduct_IdAndImagePath(id, image.getImagePath());
-            });
+            existingProductImages.removeIf(productImage -> imagesToRemove.contains(FileUtils.getFileNameFromUrl(productImage.getImagePath())));
+            existingProductImages.forEach(productImage -> productImageRepository.deleteByProduct_IdAndImagePath(id, productImage.getImagePath()));
 
+            // Identify images to be added
+            List<ProductImage> imagesToAdd = productDTO.getImagesProduct().stream()
+                    .filter(productFile -> {
+                        try {
+                            return !existingImageFileNames.contains(FileUtils.generateUniqueFileName(Objects.requireNonNull(productFile.getOriginalFilename())));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .map(productFile -> new ProductImage(existingProduct, productFile))
+                    .collect(Collectors.toList());
 
             // Save the new images
-            productImageRepository.saveAll(newImages);
+            productImageRepository.saveAll(imagesToAdd);
 
             // Save changes to the product
             Product updatedProduct = productRepository.save(existingProduct);
@@ -166,7 +234,11 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Override
     @Transactional
     public List<ProductModel> updateAll(Map<Long, ProductDTO> longProductDTOMap) {
-        return null;
+        return longProductDTOMap.entrySet().stream()
+                .map(entry -> update(entry.getKey(), entry.getValue()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -199,13 +271,19 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
                 .map(productImage -> new ProductImageModel(productImage.getId(), productImage.getProduct().getId(), productImage.getImagePath()))
                 .collect(Collectors.toList());
 
+        List<ProductUnit> productUnits = productUnitRepository.findByProduct_Id(product.getId());
+        List<ProductUnitModel> productUnitModels = productUnits.stream()
+                .map(productUnit -> new ProductUnitModel(productUnit.getId(), productUnit.getProduct().getId(), productUnit.getUnit().getId()))
+                .collect(Collectors.toList());
+
         return new ProductModel(
                 product.getId(), product.getProductName(), product.getDescription(), product.getPrice(), product.getSalePrice(),
                 product.getSKU(), product.getThumbnail(), product.getIframeVideo(), product.getViewCount(), product.getWishlistCount(),
                 product.getCategory().getId(), product.getLabel().getId(), product.getDiscount(), product.getSeoTitle(),
                 product.getMetaKeys(), product.getMetaDesc(), DateTimeUtils.formatLocalDateTime(product.getCreatedAt()),
-                DateTimeUtils.formatLocalDateTime(product.getUpdatedAt()), productImageModels);
+                DateTimeUtils.formatLocalDateTime(product.getUpdatedAt()), productImageModels, productUnitModels);
     }
+
 
     @Override
     public void convertToEntity(ProductDTO productDTO, Product product) {
@@ -217,11 +295,9 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
         product.setViewCount(productDTO.getViewCount());
         product.setWishlistCount(productDTO.getWishlistCount());
 
-        // Use orElseThrow() to handle the case when Optional is empty
         product.setCategory(categoryRepository.findById(productDTO.getCategoryId())
                 .orElseThrow(() -> new NoSuchElementException("Category not found")));
 
-        // Use orElseThrow() to handle the case when Optional is empty
         product.setLabel(labelRepository.findById(productDTO.getLabelId())
                 .orElseThrow(() -> new NoSuchElementException("Label not found")));
 

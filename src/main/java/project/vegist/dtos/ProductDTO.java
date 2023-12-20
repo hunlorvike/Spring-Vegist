@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -60,9 +61,33 @@ public class ProductDTO {
     @Size(max = 255, message = "Meta description must be less than or equal to 255 characters")
     private String metaDesc;
 
+    @NotNull(message = "Unit IDs cannot be null")
+    @Size(min = 0, message = "Unit IDs must not be empty")
+    private List<Long> unitIds;
+
     private List<MultipartFile> imagesProduct;
 
-    public void setImagesProduct(MultipartFile[] imagesProduct) {
-        this.imagesProduct = Arrays.asList(imagesProduct);
+    public ProductDTO(String productName, String description, BigDecimal price, BigDecimal salePrice, String SKU,
+                      MultipartFile thumbnail, Integer viewCount, Integer wishlistCount, Long categoryId, Long labelId,
+                      Integer discount, String iframeVideo, String seoTitle, String metaKeys, String metaDesc,
+                      List<Long> unitIds, MultipartFile[] imagesProduct) {
+        this.productName = productName;
+        this.description = description;
+        this.price = price;
+        this.salePrice = salePrice;
+        this.SKU = SKU;
+        this.thumbnail = thumbnail;
+        this.viewCount = viewCount;
+        this.wishlistCount = wishlistCount;
+        this.categoryId = categoryId;
+        this.labelId = labelId;
+        this.discount = discount;
+        this.iframeVideo = iframeVideo;
+        this.seoTitle = seoTitle;
+        this.metaKeys = metaKeys;
+        this.metaDesc = metaDesc;
+        this.unitIds = (unitIds != null) ? unitIds : new ArrayList<>();
+        // Convert the array to a mutable list
+        this.imagesProduct = (imagesProduct != null) ? new ArrayList<>(Arrays.asList(imagesProduct)) : new ArrayList<>();
     }
 }

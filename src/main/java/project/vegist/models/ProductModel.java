@@ -30,35 +30,6 @@ public class ProductModel {
     private String createdAt;
     private String updatedAt;
     private List<ProductImageModel> productImages;
-    private List<ReviewModel> productReviews;
     private List<ProductUnitModel> productUnits;
-    private List<InventoryModel> inventories;
-    private List<UserWishlistModel> userWishlists;
-    private List<CartItemModel> cartItems;
-    private List<OrderDetailModel> orderDetails;
 
-    public ProductModel(Long id, String productName, String description, BigDecimal price, BigDecimal salePrice,
-                        String SKU, String thumbnail, String iframeVideo, Integer viewCount, Integer wishlistCount,
-                        Long categoryId, Long labelId, Integer discount, String seoTitle, String metaKeys, String metaDesc,
-                        String createdAt, String updatedAt, List<ProductImageModel> productImages) {
-        this.id = id;
-        this.productName = productName;
-        this.description = description;
-        this.price = price;
-        this.salePrice = salePrice;
-        this.SKU = SKU;
-        this.thumbnail = thumbnail;
-        this.iframeVideo = iframeVideo;
-        this.viewCount = viewCount;
-        this.wishlistCount = wishlistCount;
-        this.categoryId = categoryId;
-        this.labelId = labelId;
-        this.discount = discount;
-        this.seoTitle = seoTitle;
-        this.metaKeys = metaKeys;
-        this.metaDesc = metaDesc;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.productImages = productImages;
-    }
 }

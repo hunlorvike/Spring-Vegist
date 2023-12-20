@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,14 +41,14 @@ public class FileUtils {
             }
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(baseName.getBytes());
+            byte[] hash = digest.digest(baseName.getBytes(StandardCharsets.UTF_8));
 
-            String encodedHash = Base64.getEncoder().encodeToString(hash);
+            // Use Base64.getUrlEncoder() for URL-safe encoding
+            String encodedHash = Base64.getUrlEncoder().encodeToString(hash);
 
             return (encodedHash.replaceAll("[^a-zA-Z0-9]", "") + extension).toLowerCase();
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return originalFileName;
+            throw new RuntimeException("Error generating unique file name", e);
         }
     }
 
