@@ -43,7 +43,7 @@ public class Order {
     @Column(name = "order_status", nullable = false)
     private OrderStatus orderStatus;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderDetail> orderDetails;
 
     @CreationTimestamp

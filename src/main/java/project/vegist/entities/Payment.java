@@ -8,6 +8,7 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import project.vegist.enums.PaymentMethod;
+import project.vegist.enums.Status;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,7 +32,7 @@ public class Payment {
     private BigDecimal amount;
 
     @Column(name = "status", nullable = false)
-    private Boolean status;
+    private Status status;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)

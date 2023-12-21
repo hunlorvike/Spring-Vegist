@@ -1,12 +1,12 @@
 package project.vegist.dtos;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import project.vegist.enums.OrderStatus;
-
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import project.vegist.enums.PaymentMethod;
+import project.vegist.enums.Status;
 
 import java.math.BigDecimal;
 
@@ -23,5 +23,6 @@ public class OrderDTO {
     @Positive(message = "Shipping amount must be positive")
     private BigDecimal shippingAmount;
 
-    private Long paymentId;
+    private PaymentMethod paymentMethod; // e.g., CREDIT_CARD, MOMO, CASH
+    private Status paymentStatus; // e.g., pending, success, failure, etc.
 }

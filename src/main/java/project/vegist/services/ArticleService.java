@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -72,13 +73,14 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
 
         List<Long> existingTagIds = savedArticle.getArticleTags().stream()
                 .map(articleTag -> articleTag.getTag().getId())
-                .toList();
+                .collect(Collectors.toList());
 
-        List<ArticleTag> articleTags = articleDTO.getTagIds().stream()
+        List<ArticleTag> newArticleTags = articleDTO.getTagIds().stream()
                 .filter(tagId -> !existingTagIds.contains(tagId))
                 .map(tagId -> {
                     Tag tag = tagRepository.findById(tagId)
-                            .orElseThrow(() -> new RuntimeException("Tag not found"));
+                            .orElseThrow(() -> new EntityNotFoundException("Tag not found with ID: " + tagId));
+
                     ArticleTag newArticleTag = new ArticleTag();
                     newArticleTag.setArticles(savedArticle);
                     newArticleTag.setTag(tag);
@@ -86,11 +88,9 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
                 })
                 .collect(Collectors.toList());
 
-        List<ArticleTag> savedArticleTags = articleTagRepository.saveAll(articleTags);
+        List<ArticleTag> savedArticleTags = articleTagRepository.saveAll(newArticleTags);
 
-        ArticleModel articleModel = convertToModel(savedArticle);
-
-        return Optional.ofNullable(articleModel);
+        return Optional.ofNullable(convertToModel(savedArticle));
     }
 
     @Override
