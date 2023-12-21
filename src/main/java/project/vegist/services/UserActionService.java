@@ -123,7 +123,7 @@ public class UserActionService implements CrudService<UserAction, UserActionDTO,
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (userActionRepository.existsById(id)) {
             userActionRepository.deleteById(id);
             return true;

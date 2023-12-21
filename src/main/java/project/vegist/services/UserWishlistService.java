@@ -115,7 +115,7 @@ public class UserWishlistService implements CrudService<UserWishlist, UserWishli
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (userWishlistRepository.existsById(id)) {
             userWishlistRepository.deleteById(id);
             return true;

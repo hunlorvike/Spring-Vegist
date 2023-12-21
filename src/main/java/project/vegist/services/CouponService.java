@@ -106,7 +106,7 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         return couponRepository.existsById(id) && performDelete(id);
     }
 

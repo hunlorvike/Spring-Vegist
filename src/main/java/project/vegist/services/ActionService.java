@@ -105,7 +105,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         return actionRepository.existsById(id) && performDelete(id);
     }
 

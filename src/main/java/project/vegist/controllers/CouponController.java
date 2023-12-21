@@ -98,7 +98,7 @@ public class CouponController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteCoupon(@PathVariable Long id) {
         try {
-            boolean deleted = couponService.deleleById(id);
+            boolean deleted = couponService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Coupon deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

@@ -178,7 +178,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
             return true;

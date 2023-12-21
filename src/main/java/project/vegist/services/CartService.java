@@ -90,11 +90,46 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
     @Transactional
     public Optional<CartModel> update(Long id, CartDTO cartDTO) {
         return cartRepository.findById(id).map(existingCart -> {
-            convertToEntity(cartDTO, existingCart);
+            updateCartItems(existingCart, cartDTO.getCartItems());
+
             Cart updatedCart = cartRepository.save(existingCart);
+
             return convertToModel(updatedCart);
         });
     }
+
+    private void updateCartItems(Cart cart, List<CartItemDTO> cartItemDTOs) {
+        for (CartItemDTO cartItemDTO : cartItemDTOs) {
+            Long productId = cartItemDTO.getProductId();
+            Optional<CartItem> existingCartItem = findCartItemByProductId(cart.getCartItems(), productId);
+
+            if (existingCartItem.isPresent()) {
+                updateCartItemByDTO(existingCartItem.get(), cartItemDTO);
+            } else {
+                CartItem newCartItem = convertCartItemDTOToEntity(cartItemDTO, cart);
+                cart.getCartItems().add(newCartItem);
+            }
+        }
+
+        cart.getCartItems().removeIf(cartItem -> !containsCartItemByProductId(cartItemDTOs, cartItem.getProduct().getId()));
+    }
+
+    private Optional<CartItem> findCartItemByProductId(List<CartItem> cartItems, Long productId) {
+        return cartItems.stream()
+                .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
+                .findFirst();
+    }
+
+    private void updateCartItemByDTO(CartItem cartItem, CartItemDTO cartItemDTO) {
+        cartItem.setQuantity(cartItemDTO.getQuantity());
+        cartItem.setPrice(cartItemDTO.getPrice());
+    }
+
+
+    private boolean containsCartItemByProductId(List<CartItemDTO> cartItemDTOs, Long productId) {
+        return cartItemDTOs.stream().anyMatch(cartItemDTO -> cartItemDTO.getProductId().equals(productId));
+    }
+
 
     @Override
     @Transactional
@@ -117,21 +152,42 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
-        if (cartRepository.existsById(id)) {
-            cartRepository.deleteById(id);
+    public boolean deleteById(Long id) {
+        // Tìm kiếm giỏ hàng cần xóa
+        Optional<Cart> cartToDelete = cartRepository.findById(id);
+
+        // Xác định xem giỏ hàng có tồn tại hay không
+        boolean cartExists = cartToDelete.isPresent();
+
+        // Xóa giỏ hàng nếu tồn tại
+        if (cartExists) {
+            Cart cart = cartToDelete.get();
+
+            // Xóa tất cả các CartItem liên quan
+            cartItemRepository.deleteAll(cart.getCartItems());
+
+            // Xóa chính giỏ hàng
+            cartRepository.delete(cart);
+
+            // Trả về true khi cả hai thao tác đều thành công
             return true;
         }
+
         return false;
     }
 
     @Override
     @Transactional
     public boolean deleteAll(List<Long> ids) {
-        List<Cart> cartsToDelete = cartRepository.findAllById(ids);
-        cartRepository.deleteAll(cartsToDelete);
+        List<CartItem> cartItemsToDelete = cartItemRepository.findByCartIdIn(ids);
+
+        cartItemRepository.deleteInBatch(cartItemsToDelete);
+
+        cartRepository.deleteAllById(ids);
+
         return true;
     }
+
 
     @Override
     public List<CartModel> search(String keywords) {

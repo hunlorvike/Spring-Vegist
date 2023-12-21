@@ -93,7 +93,7 @@ public class ProductImageService implements CrudService<ProductImage, ProductIma
     }
 
     @Override
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (productImageRepository.existsById(id)) {
             productImageRepository.deleteById(id);
             return true;

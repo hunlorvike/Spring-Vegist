@@ -114,7 +114,7 @@ public class RoleController {
     @DeleteMapping("/roles/{id}")
     public ResponseEntity<BaseResponse<String>> deleteRole(@PathVariable Long id) {
         try {
-            boolean deleted = roleService.deleleById(id);
+            boolean deleted = roleService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Role deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

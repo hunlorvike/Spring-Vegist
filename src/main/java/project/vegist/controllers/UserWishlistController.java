@@ -100,7 +100,7 @@ public class UserWishlistController {
     @DeleteMapping("/user-wishlists/{id}")
     public ResponseEntity<BaseResponse<String>> deleteUserWishlist(@PathVariable Long id) {
         try {
-            boolean deleted = userWishlistService.deleleById(id);
+            boolean deleted = userWishlistService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("User wishlist deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

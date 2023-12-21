@@ -243,7 +243,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (productRepository.existsById(id)) {
             productRepository.deleteById(id);
             return true;

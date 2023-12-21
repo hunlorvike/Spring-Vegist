@@ -114,7 +114,7 @@ public class LabelController {
     @DeleteMapping("/labels/{id}")
     public ResponseEntity<BaseResponse<String>> deleteLabel(@PathVariable Long id) {
         try {
-            boolean deleted = labelService.deleleById(id);
+            boolean deleted = labelService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Label deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

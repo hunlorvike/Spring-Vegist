@@ -137,7 +137,7 @@ public class CategoryController {
     @DeleteMapping("/categories/{id}")
     public ResponseEntity<BaseResponse<String>> deleteCategory(@PathVariable Long id) {
         try {
-            boolean deleted = categoryService.deleleById(id);
+            boolean deleted = categoryService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Category deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

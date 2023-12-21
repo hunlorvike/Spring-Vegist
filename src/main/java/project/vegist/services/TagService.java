@@ -109,7 +109,7 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (tagRepository.existsById(id)) {
             tagRepository.deleteById(id);
             return true;

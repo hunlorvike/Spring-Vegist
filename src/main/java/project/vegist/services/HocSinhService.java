@@ -95,7 +95,7 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
     }
 
     @Override
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (hocSinhRepository.existsById(id)) {
             // Retrieve the HocSinh entity
             Optional<HocSinh> optionalHocSinh = hocSinhRepository.findById(id);

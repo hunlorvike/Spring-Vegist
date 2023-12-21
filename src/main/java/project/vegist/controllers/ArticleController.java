@@ -114,7 +114,7 @@ public class ArticleController {
     @DeleteMapping("/articles/{id}")
     public ResponseEntity<BaseResponse<String>> deleteArticle(@PathVariable Long id) {
         try {
-            boolean isDeleted = articleService.deleleById(id);
+            boolean isDeleted = articleService.deleteById(id);
             return isDeleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Article deleted"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

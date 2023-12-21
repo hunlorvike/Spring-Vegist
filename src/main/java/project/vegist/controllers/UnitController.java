@@ -99,7 +99,7 @@ public class UnitController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteUnit(@PathVariable Long id) {
         try {
-            boolean deleted = unitService.deleleById(id);
+            boolean deleted = unitService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Unit deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

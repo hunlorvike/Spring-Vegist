@@ -108,7 +108,7 @@ public class UnitService implements CrudService<Unit, UnitDTO, UnitModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (unitRepository.existsById(id)) {
             unitRepository.deleteById(id);
             return true;

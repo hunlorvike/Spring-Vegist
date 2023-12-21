@@ -30,7 +30,7 @@ public interface CrudService<Entity, DTO, Model> {
     List<Model> updateAll(Map<Long, DTO> dtoMap);
 
     @Transactional
-    boolean deleleById(Long id);
+    boolean deleteById(Long id);
 
     @Transactional
     boolean deleteAll(List<Long> ids);

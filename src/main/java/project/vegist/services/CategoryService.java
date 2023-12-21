@@ -102,7 +102,7 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         return categoryRepository.existsById(id) && performDelete(id);
     }
 

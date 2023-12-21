@@ -112,7 +112,7 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (inventoryRepository.existsById(id)) {
             inventoryRepository.deleteById(id);
             return true;

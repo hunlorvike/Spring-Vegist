@@ -99,7 +99,7 @@ public class UserActionController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteUserAction(@PathVariable Long id) {
         try {
-            boolean deleted = userActionService.deleleById(id);
+            boolean deleted = userActionService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("User-action deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

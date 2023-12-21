@@ -143,7 +143,7 @@ public class ProductController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteProduct(@PathVariable Long id) {
         try {
-            boolean deleted = productService.deleleById(id);
+            boolean deleted = productService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Product deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

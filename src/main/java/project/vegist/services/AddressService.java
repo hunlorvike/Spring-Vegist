@@ -123,7 +123,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (addressRepository.existsById(id)) {
             addressRepository.deleteById(id);
             return true;

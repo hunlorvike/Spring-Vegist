@@ -82,7 +82,6 @@ public class CartController {
                     .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
         }
     }
-
     @PutMapping("/carts/{id}")
     public ResponseEntity<BaseResponse<CartModel>> updateCart(@PathVariable Long id, @Valid @RequestBody CartDTO cartDTO) {
         try {
@@ -97,10 +96,11 @@ public class CartController {
         }
     }
 
+
     @DeleteMapping("/carts/{id}")
     public ResponseEntity<BaseResponse<String>> deleteCart(@PathVariable Long id) {
         try {
-            boolean deleted = cartService.deleleById(id);
+            boolean deleted = cartService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Cart deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

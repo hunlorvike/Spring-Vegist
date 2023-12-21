@@ -120,7 +120,7 @@ public class InventoryController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteInventory(@PathVariable Long id) {
         try {
-            boolean deleted = inventoryService.deleleById(id);
+            boolean deleted = inventoryService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Inventory deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

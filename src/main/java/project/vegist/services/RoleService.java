@@ -95,7 +95,7 @@ public class RoleService implements CrudService<Role, RoleDTO, RoleModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (roleRepository.existsById(id)) {
             roleRepository.deleteById(id);
             return true;

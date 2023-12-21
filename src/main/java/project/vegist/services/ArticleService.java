@@ -180,7 +180,7 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (articleRepository.existsById(id)) {
             int affectedRows = articleTagRepository.deleteByArticlesId(id);
             if (affectedRows > 0) {

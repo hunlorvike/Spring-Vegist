@@ -120,7 +120,7 @@ public class ReviewService implements CrudService<Review, ReviewDTO, ReviewModel
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (reviewRepository.existsById(id)) {
             reviewRepository.deleteById(id);
             return true;

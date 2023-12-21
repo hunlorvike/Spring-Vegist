@@ -119,7 +119,7 @@ public class AddressController {
     @DeleteMapping("user-addresses/{id}")
     public ResponseEntity<BaseResponse<String>> deleteUserAddress(@PathVariable Long id) {
         try {
-            boolean deleted = addressService.deleleById(id);
+            boolean deleted = addressService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("User-address deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)

@@ -62,7 +62,7 @@ public class HocSinhController {
 
     @DeleteMapping("/hoc-sinh/{id}")
     public ResponseEntity<Void> deleteHocSinh(@PathVariable Long id) {
-        if (hocSinhService.deleleById(id)) {
+        if (hocSinhService.deleteById(id)) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

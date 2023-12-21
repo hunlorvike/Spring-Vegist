@@ -94,7 +94,7 @@ public class LabelService implements CrudService<Label, LabelDTO, LabelModel> {
 
     @Override
     @Transactional
-    public boolean deleleById(Long id) {
+    public boolean deleteById(Long id) {
         if (labelRepository.existsById(id)) {
             labelRepository.deleteById(id);
             return true;

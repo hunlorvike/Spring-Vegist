@@ -125,7 +125,7 @@ public class TagController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
     public ResponseEntity<BaseResponse<String>> deleteTag(@PathVariable Long id) {
         try {
-            boolean deleted = tagService.deleleById(id);
+            boolean deleted = tagService.deleteById(id);
             return deleted
                     ? ResponseEntity.ok(new SuccessResponse<>("Tag deleted successfully"))
                     : ResponseEntity.status(HttpStatus.NOT_FOUND)
