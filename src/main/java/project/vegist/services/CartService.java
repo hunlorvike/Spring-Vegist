@@ -69,10 +69,19 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
     @Override
     @Transactional
     public Optional<CartModel> create(CartDTO cartDTO) throws IOException {
-        Cart newCart = new Cart();
-        convertToEntity(cartDTO, newCart);
-        newCart = cartRepository.save(newCart);
-        return Optional.ofNullable(convertToModel(newCart));
+        Long userId = cartDTO.getUserId();
+        Optional<CartModel> pendingCart = findPendingCartByUserId(userId);
+
+        if (pendingCart.isPresent()) {
+            return pendingCart.flatMap(cartModel -> update(cartModel.getId(), cartDTO));
+        } else {
+            // Người dùng chưa có giỏ hàng PENDING, tạo một giỏ hàng mới
+            Cart newCart = new Cart();
+            convertToEntity(cartDTO, newCart);
+            newCart.setStatus(PENDING);
+            newCart = cartRepository.save(newCart);
+            return Optional.ofNullable(convertToModel(newCart));
+        }
     }
 
     @Override
@@ -124,6 +133,7 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
                 .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
                 .findFirst();
     }
+
 
     private void updateCartItemByDTO(CartItem cartItem, CartItemDTO cartItemDTO) {
         cartItem.setQuantity(cartItemDTO.getQuantity());
@@ -238,4 +248,6 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
             throw new ResourceNotFoundException("User ", userId, HttpStatus.CONFLICT);
         }
     }
+
+
 }

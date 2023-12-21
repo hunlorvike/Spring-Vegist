@@ -28,10 +28,6 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_orders_user"))
     private User user;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", nullable = false)
-    private OrderStatus orderStatus;
-
     @ManyToOne
     @JoinColumn(name = "coupon_id", nullable = true, foreignKey = @ForeignKey(name = "fk_orders_coupon"))
     private Coupon coupon;
@@ -42,6 +38,10 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "payment_id", nullable = false, foreignKey = @ForeignKey(name = "fk_orders_payment"))
     private Payment payment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", nullable = false)
+    private OrderStatus orderStatus;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderDetail> orderDetails;

@@ -17,16 +17,11 @@ public class OrderDTO {
     @NotNull(message = "User ID cannot be null")
     private Long userId;
 
-    @NotNull(message = "Order status cannot be null")
-    private OrderStatus orderStatus;
-
-    // Assuming couponId can be null
     private Long couponId;
 
     @NotNull(message = "Shipping amount cannot be null")
     @Positive(message = "Shipping amount must be positive")
     private BigDecimal shippingAmount;
 
-    @NotNull(message = "Payment ID cannot be null")
     private Long paymentId;
 }
