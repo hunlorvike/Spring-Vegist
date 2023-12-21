@@ -153,39 +153,19 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
     @Override
     @Transactional
     public boolean deleteById(Long id) {
-        // Tìm kiếm giỏ hàng cần xóa
-        Optional<Cart> cartToDelete = cartRepository.findById(id);
+        int deletedCartItems = cartItemRepository.deleteCartItemsByCartId(id);
+        int deletedCart = cartRepository.deleteCartById(id);
 
-        // Xác định xem giỏ hàng có tồn tại hay không
-        boolean cartExists = cartToDelete.isPresent();
-
-        // Xóa giỏ hàng nếu tồn tại
-        if (cartExists) {
-            Cart cart = cartToDelete.get();
-
-            // Xóa tất cả các CartItem liên quan
-            cartItemRepository.deleteAll(cart.getCartItems());
-
-            // Xóa chính giỏ hàng
-            cartRepository.delete(cart);
-
-            // Trả về true khi cả hai thao tác đều thành công
-            return true;
-        }
-
-        return false;
+        return deletedCartItems > 0 && deletedCart > 0;
     }
 
     @Override
     @Transactional
     public boolean deleteAll(List<Long> ids) {
-        List<CartItem> cartItemsToDelete = cartItemRepository.findByCartIdIn(ids);
+        int cartItemsDeleted = cartItemRepository.deleteCartItemsByCartIds(ids);
+        int cartsDeleted = cartRepository.deleteAllCartById(ids);
 
-        cartItemRepository.deleteInBatch(cartItemsToDelete);
-
-        cartRepository.deleteAllById(ids);
-
-        return true;
+        return cartItemsDeleted > 0 && cartsDeleted > 0;
     }
 
 
