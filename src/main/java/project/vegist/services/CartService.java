@@ -3,12 +3,15 @@ package project.vegist.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.CartDTO;
 import project.vegist.dtos.CartItemDTO;
 import project.vegist.entities.Cart;
 import project.vegist.entities.CartItem;
+import project.vegist.entities.User;
+import project.vegist.exceptions.ResourceNotFoundException;
 import project.vegist.models.CartItemModel;
 import project.vegist.models.CartModel;
 import project.vegist.repositories.CartItemRepository;
@@ -21,6 +24,8 @@ import project.vegist.utils.DateTimeUtils;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static project.vegist.enums.CartStatus.PENDING;
 
 @Service
 public class CartService implements CrudService<Cart, CartDTO, CartModel> {
@@ -224,4 +229,13 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
         return cartItem;
     }
 
+
+    public Optional<CartModel> findPendingCartByUserId(Long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isPresent()) {
+            return cartRepository.findByUserIdAndStatus(userId, PENDING).map(this::convertToModel);
+        } else {
+            throw new ResourceNotFoundException("User ", userId, HttpStatus.CONFLICT);
+        }
+    }
 }

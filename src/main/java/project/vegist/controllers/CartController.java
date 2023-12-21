@@ -16,6 +16,7 @@ import project.vegist.responses.BaseResponse;
 import project.vegist.responses.ErrorResponse;
 import project.vegist.responses.SuccessResponse;
 import project.vegist.services.CartService;
+import project.vegist.services.JwtService;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,14 +31,17 @@ public class CartController {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     @Autowired
-    public CartController(CartService cartService, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository) {
+    public CartController(CartService cartService, CartRepository cartRepository, CartItemRepository cartItemRepository, ProductRepository productRepository, UserRepository userRepository
+            , JwtService jwtService) {
         this.cartService = cartService;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/carts")
@@ -70,6 +74,24 @@ public class CartController {
         }
     }
 
+    @GetMapping("/my-pending-cart")
+    public ResponseEntity<BaseResponse<CartModel>> getMyPendingCart(@RequestHeader("Authorization") String token) {
+        try {
+            Long userId = getUserIdFromToken(token);
+            Optional<CartModel> cartModel = cartService.findPendingCartByUserId(userId);
+            return cartModel.map(value -> ResponseEntity.ok(new BaseResponse<>("success", null, value)))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse<>(Collections.singletonList("Pending cart not found"))));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
+        }
+    }
+
+    private Long getUserIdFromToken(String token) {
+        return jwtService.getUserIdFromToken(token);
+    }
+
     @PostMapping("/carts")
     public ResponseEntity<BaseResponse<CartModel>> createCart(@Valid @RequestBody CartDTO cartDTO) {
         try {
@@ -82,6 +104,7 @@ public class CartController {
                     .body(new ErrorResponse<>(Collections.singletonList(e.getMessage())));
         }
     }
+
     @PutMapping("/carts/{id}")
     public ResponseEntity<BaseResponse<CartModel>> updateCart(@PathVariable Long id, @Valid @RequestBody CartDTO cartDTO) {
         try {
