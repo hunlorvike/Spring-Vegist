@@ -24,12 +24,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Cấu hình để phục vụ các tệp tĩnh từ thư mục static
         registry.addResourceHandler("/static/**")
-                .addResourceLocations("classpath:/static/")
+                .addResourceLocations("classpath:/static/", "classpath:/static/images/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
     }
+
+
+
 }
-
-
-

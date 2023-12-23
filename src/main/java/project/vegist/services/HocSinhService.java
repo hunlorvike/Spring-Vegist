@@ -2,7 +2,6 @@ package project.vegist.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import project.vegist.dtos.HocSinhDTO;
 import project.vegist.entities.AlbumHocSinh;
 import project.vegist.entities.HocSinh;
@@ -13,9 +12,9 @@ import project.vegist.services.impls.CrudService;
 import project.vegist.utils.FileUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,28 +52,37 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
 
     @Override
     public Optional<HocSinhModel> create(HocSinhDTO hocSinhDTO) throws IOException {
-        // Upload avatar và lấy tên file
-        String avatarFileName = fileUtils.uploadFile(hocSinhDTO.getAvatar());
+        // Upload avatar and get file name (checking for duplicate content)
+        String avatarFileName = fileUtils.uploadFile(hocSinhDTO.getAvatar(), true);
 
-        // Lưu thông tin HocSinh
+        // Save HocSinh information
         HocSinh hocSinh = new HocSinh();
         convertToEntity(hocSinhDTO, hocSinh);
         hocSinh.setAvatarPath(avatarFileName);
         hocSinh = hocSinhRepository.save(hocSinh);
 
-        // Xử lý các file trong album nếu có
-        List<AlbumHocSinh> albumFiles = new ArrayList<>();
-        for (MultipartFile albumFile : hocSinhDTO.getAlbumFiles()) {
-            String albumFileName = fileUtils.uploadFile(albumFile);
+        // Process files in the album if any
+        if (hocSinhDTO.getAlbumFiles() != null && !hocSinhDTO.getAlbumFiles().isEmpty()) {
+            HocSinh finalHocSinh = hocSinh;
+            List<AlbumHocSinh> albumFiles = hocSinhDTO.getAlbumFiles().stream()
+                    .map(albumFile -> {
+                        try {
+                            String albumFileName = fileUtils.uploadFile(albumFile, false);
+                            AlbumHocSinh albumHocSinh = new AlbumHocSinh();
+                            albumHocSinh.setAssetsPath(albumFileName);
+                            albumHocSinh.setHocsinh(finalHocSinh);
+                            return albumHocSinh;
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
-            AlbumHocSinh albumHocSinh = new AlbumHocSinh();
-            albumHocSinh.setAssetsPath(albumFileName);
-            albumHocSinh.setHocsinh(hocSinh);
-            albumFiles.add(albumHocSinh);
+            // Link HocSinh with files in the album and save them
+            albumHocSinhRepository.saveAll(albumFiles);
         }
-
-        // Liên kết HocSinh với các file trong album và lưu chúng
-        albumHocSinhRepository.saveAll(albumFiles);
 
         return Optional.ofNullable(convertToModel(hocSinh));
     }

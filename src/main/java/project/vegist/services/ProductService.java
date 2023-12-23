@@ -76,7 +76,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Transactional
     public Optional<ProductModel> create(ProductDTO productDTO) throws IOException {
         // Save the new product
-        String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail());
+        String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail(), true);
         Product newProduct = new Product();
         convertToEntity(productDTO, newProduct);
         newProduct.setThumbnail(thumbnailFileName);
@@ -94,7 +94,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
         List<ProductImage> productImages = productDTO.getImagesProduct().stream()
                 .map(productFile -> {
                     try {
-                        String productFileName = fileUtils.uploadFile(productFile);
+                        String productFileName = fileUtils.uploadFile(productFile, true);
                         return new ProductImage(finalProduct, productFileName);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -119,7 +119,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
         List<ProductModel> createdProducts = new ArrayList<>();
 
         for (ProductDTO productDTO : productDTOS) {
-            String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail());
+            String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail(), true);
             Product newProduct = new Product();
             convertToEntity(productDTO, newProduct);
             newProduct.setThumbnail(thumbnailFileName);
@@ -127,7 +127,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
 
             List<ProductImage> productImages = new ArrayList<>();
             for (MultipartFile productFile : productDTO.getImagesProduct()) {
-                String productFileName = fileUtils.uploadFile(productFile);
+                String productFileName = fileUtils.uploadFile(productFile, true);
 
                 ProductImage productImage = new ProductImage();
                 productImage.setProduct(newProduct);

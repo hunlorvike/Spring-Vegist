@@ -5,11 +5,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -20,25 +18,15 @@ import static project.vegist.common.AppConstants.BASE_URL;
 
 @Component
 public class FileUtils {
-    private String uploadDirectory;
-
+    // Remove the static keyword
     @Value("${upload-path}")
-    public void setUploadDirectory(String uploadDirectory) {
-        this.uploadDirectory = uploadDirectory;
-    }
+    private String uploadDirectory;
 
     public static String generateUniqueFileName(String originalFileName) {
         try {
             int lastDotIndex = originalFileName.lastIndexOf(".");
-            String baseName;
-            String extension = "";
-
-            if (lastDotIndex >= 0) {
-                baseName = originalFileName.substring(0, lastDotIndex);
-                extension = originalFileName.substring(lastDotIndex);
-            } else {
-                baseName = originalFileName;
-            }
+            String baseName = (lastDotIndex >= 0) ? originalFileName.substring(0, lastDotIndex) : originalFileName;
+            String extension = (lastDotIndex >= 0) ? originalFileName.substring(lastDotIndex) : "";
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(baseName.getBytes(StandardCharsets.UTF_8));
@@ -52,71 +40,80 @@ public class FileUtils {
         }
     }
 
-    public static void saveFile(MultipartFile file, String filePath) throws IOException {
-        Path destination = Path.of(filePath);
-        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-    }
+    public static void saveFileAsBase64(String base64Data, String filePath) throws IOException {
+        byte[] decodedBytes = Base64.getDecoder().decode(base64Data);
 
-    public static String joinPaths(String path1, String path2) {
-        return Path.of(path1, path2).toString();
-    }
+        // Create parent directories if they don't exist
+        Path path = Paths.get(filePath);
+        Files.createDirectories(path.getParent());
 
-    public static String getFileExtension(String originalFilename) {
-        if (originalFilename == null || originalFilename.isEmpty()) {
-            return "";
-        }
-
-        int lastDotIndex = originalFilename.lastIndexOf(".");
-        if (lastDotIndex >= 0) {
-            return originalFilename.substring(lastDotIndex + 1).toLowerCase();
-        } else {
-            return "";
+        // Write the decoded bytes to the file
+        try (OutputStream outputStream = Files.newOutputStream(path, StandardOpenOption.CREATE)) {
+            outputStream.write(decodedBytes);
         }
     }
 
-    public static String reverseSHA256(String encodedHash) {
-        try {
-            byte[] decodedHash = Base64.getDecoder().decode(encodedHash);
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            byte[] originalBytes = sha256.digest(decodedHash);
-
-            StringBuilder result = new StringBuilder();
-            for (byte b : originalBytes) {
-                result.append(String.format("%02x", b));
-            }
-
-            return result.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
-
-    public String uploadFile(MultipartFile file) throws IOException {
+    public String uploadFile(MultipartFile file, boolean checkDuplicate) throws IOException {
         String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
-        String fileExtension = FileUtils.getFileExtension(originalFileName);
+        String fileExtension = getFileExtension(originalFileName);
+        String subFolder = determineSubFolder(fileExtension);
 
-        String subFolder;
-        if (isImageFile(fileExtension)) {
-            subFolder = "images";
-        } else if (isVideoFile(fileExtension)) {
-            subFolder = "videos";
-        } else {
-            subFolder = "other";
+        // Sử dụng đường dẫn tương đối từ thư mục làm việc hiện tại
+        String relativePath = subFolder + "/" + generateUniqueFileName(originalFileName, file);
+
+        Path filePath = Paths.get(uploadDirectory, relativePath).normalize();
+        Files.createDirectories(filePath.getParent());
+
+        if (checkDuplicate && fileExistsWithSameContent(filePath, file)) {
+            return null;
         }
 
-        String folderPath = FileUtils.joinPaths(uploadDirectory, subFolder);
-        Files.createDirectories(Paths.get(folderPath));
+        byte[] fileBytes = file.getBytes();
+        String base64File = encodeFileToBase64(fileBytes);
 
-        String uniqueFileName = FileUtils.generateUniqueFileName(originalFileName);
-        String filePath = FileUtils.joinPaths(folderPath, uniqueFileName);
+        saveFileAsBase64(base64File, filePath.toString());
 
-        FileUtils.saveFile(file, filePath);
-
-        // Tạo URL dựa trên subFolder và uniqueFileName
-
-        return BASE_URL + subFolder + "/" + uniqueFileName;
+        return BASE_URL + relativePath;
     }
+
+    private String encodeFileToBase64(byte[] fileBytes) {
+        return Base64.getEncoder().encodeToString(fileBytes);
+    }
+
+
+    // Modify this method to generate a unique filename based on content
+    public static String generateUniqueFileName(String originalFileName, MultipartFile file) {
+        try {
+            int lastDotIndex = originalFileName.lastIndexOf(".");
+            String baseName = (lastDotIndex >= 0) ? originalFileName.substring(0, lastDotIndex) : originalFileName;
+            String extension = (lastDotIndex >= 0) ? originalFileName.substring(lastDotIndex) : "";
+
+            // Thêm mã băm của nội dung file vào tên để đảm bảo tính duy nhất
+            byte[] contentBytes = file.getBytes();
+            MessageDigest contentDigest = MessageDigest.getInstance("SHA-256");
+            byte[] contentHash = contentDigest.digest(contentBytes);
+            String contentHashString = Base64.getUrlEncoder().encodeToString(contentHash).replaceAll("[^a-zA-Z0-9]", "");
+
+            return (baseName + "_" + contentHashString + extension).toLowerCase();
+        } catch (IOException | NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error generating unique file name", e);
+        }
+    }
+
+    // Modify this method to check if a file with the same content already exists
+    private boolean fileExistsWithSameContent(Path filePath, MultipartFile file) {
+        try {
+            if (Files.exists(filePath)) {
+                byte[] existingFileBytes = Files.readAllBytes(filePath);
+                byte[] newFileBytes = file.getBytes();
+                return Arrays.equals(existingFileBytes, newFileBytes);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 
     public static String getFileNameFromUrl(String fileUrl) {
         if (!fileUrl.startsWith(BASE_URL)) {
@@ -158,6 +155,50 @@ public class FileUtils {
         return pathWithoutBaseUrl;
     }
 
+    public static String getOriginalFileNameFromBase64(String base64Image) {
+        byte[] decodedBytes = decodeBase64Image(base64Image);
+        String originalFileName = "defaultFileName"; // Tên mặc định nếu không thể lấy được tên file
+
+        try {
+            originalFileName = new String(decodedBytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return originalFileName;
+    }
+
+    public static String getOriginalFileNameFromMultipartFile(MultipartFile file) {
+        String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
+        String fileExtension = getFileExtension(originalFileName);
+
+        String subFolder = determineSubFolder(fileExtension);
+        String uniqueFileName = generateUniqueFileName(originalFileName);
+        String fileNameWithoutExtension = uniqueFileName.replaceFirst("[.][^.]+$", ""); // Remove the file extension
+
+        return subFolder + "/" + reverseSHA256(fileNameWithoutExtension);
+    }
+
+    public static String decodeAndSaveFile(MultipartFile file, String filePath) throws IOException {
+        byte[] imageBytes = file.getBytes();
+        String base64Image = encodeImageToBase64(imageBytes);
+
+        return decodeAndSaveFile(base64Image, filePath);
+    }
+
+    public static String getFileExtension(String originalFilename) {
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            return "";
+        }
+
+        int lastDotIndex = originalFilename.lastIndexOf(".");
+        if (lastDotIndex >= 0) {
+            return originalFilename.substring(lastDotIndex + 1).toLowerCase();
+        } else {
+            return "";
+        }
+    }
+
 
     public static boolean isImageFile(String fileExtension) {
         return Arrays.asList("jpg", "png", "gif").contains(fileExtension.toLowerCase());
@@ -167,5 +208,60 @@ public class FileUtils {
         return Arrays.asList("mp4", "avi", "mkv").contains(fileExtension.toLowerCase());
     }
 
+    private static String determineSubFolder(String fileExtension) {
+        if (isImageFile(fileExtension)) {
+            return "images";
+        } else if (isVideoFile(fileExtension)) {
+            return "videos";
+        } else {
+            return "other";
+        }
+    }
 
+    public static String encodeImageToBase64(byte[] imageBytes) {
+        return Base64.getEncoder().encodeToString(imageBytes);
+    }
+
+    public static String encodeImageToBase64(String imagePath) throws IOException {
+        byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
+        return encodeImageToBase64(imageBytes);
+    }
+
+    public static String encodeImageToBase64(MultipartFile imageFile) throws IOException {
+        byte[] imageBytes = imageFile.getBytes();
+        return encodeImageToBase64(imageBytes);
+    }
+
+    public static byte[] decodeBase64Image(String base64Image) {
+        return Base64.getDecoder().decode(base64Image);
+    }
+
+    public static void saveDecodedFile(byte[] decodedBytes, String filePath) throws IOException {
+        Files.write(Paths.get(filePath), decodedBytes);
+    }
+
+    public static String decodeAndSaveFile(String base64Data, String filePath) throws IOException {
+        byte[] decodedBytes = decodeBase64Image(base64Data);
+        saveDecodedFile(decodedBytes, filePath);
+
+        return filePath;
+    }
+
+    public static String reverseSHA256(String encodedHash) {
+        try {
+            byte[] decodedHash = Base64.getDecoder().decode(encodedHash);
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            byte[] originalBytes = sha256.digest(decodedHash);
+
+            StringBuilder result = new StringBuilder();
+            for (byte b : originalBytes) {
+                result.append(String.format("%02x", b));
+            }
+
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 }

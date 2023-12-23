@@ -11,6 +11,7 @@ import project.vegist.services.HocSinhService;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/public")
@@ -26,21 +27,22 @@ public class HocSinhController {
     @GetMapping("/hoc-sinh")
     public ResponseEntity<List<HocSinhModel>> findAllHocSinhs() {
         List<HocSinhModel> hocSinhs = hocSinhService.findAll();
-        return new ResponseEntity<>(hocSinhs, HttpStatus.OK);
+        return ResponseEntity.ok(hocSinhs);
     }
 
     @GetMapping("/hoc-sinh/{id}")
     public ResponseEntity<HocSinhModel> findHocSinhById(@PathVariable Long id) {
-        return hocSinhService.findById(id)
-                .map(hocSinhModel -> new ResponseEntity<>(hocSinhModel, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        Optional<HocSinhModel> hocSinhModel = hocSinhService.findById(id);
+        return hocSinhModel
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/hoc-sinh")
     public ResponseEntity<HocSinhModel> createHocSinh(
             @RequestParam("name") String name,
             @RequestParam("age") int age,
-            @RequestPart("avatar") MultipartFile avatar,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             @RequestPart(value = "albumFiles", required = false) MultipartFile[] albumFiles
     ) {
         try {
@@ -50,24 +52,23 @@ public class HocSinhController {
             hocSinhDTO.setAvatar(avatar);
             hocSinhDTO.setAlbumFiles(albumFiles);
 
-            // Gọi service để tạo mới HocSinhModel
-            return hocSinhService.create(hocSinhDTO)
+            Optional<HocSinhModel> createdHocSinh = hocSinhService.create(hocSinhDTO);
+
+            return createdHocSinh
                     .map(hocSinhModel -> new ResponseEntity<>(hocSinhModel, HttpStatus.CREATED))
-                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
         } catch (IOException e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @DeleteMapping("/hoc-sinh/{id}")
     public ResponseEntity<Void> deleteHocSinh(@PathVariable Long id) {
         if (hocSinhService.deleteById(id)) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return ResponseEntity.noContent().build();
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
     }
-
-
 }
