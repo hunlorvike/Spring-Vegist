@@ -75,36 +75,46 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Override
     @Transactional
     public Optional<ProductModel> create(ProductDTO productDTO) throws IOException {
-        // Save the new product
-        String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail(), true);
-        Product newProduct = new Product();
-        convertToEntity(productDTO, newProduct);
-        newProduct.setThumbnail(thumbnailFileName);
-        newProduct = productRepository.save(newProduct);
+        try {
+            // Save the new product
+            String thumbnailFileName = fileUtils.uploadFile(productDTO.getThumbnail(), true);
+            Product newProduct = new Product();
+            convertToEntity(productDTO, newProduct);
+            newProduct.setThumbnail(thumbnailFileName);
+            newProduct = productRepository.save(newProduct);
 
-        final Product finalProduct = newProduct; // Make newProduct effectively final
+            final Product finalProduct = newProduct;
 
-        // Save the product units
-        List<ProductUnit> productUnits = productDTO.getUnitIds().stream()
-                .map(unitId -> new ProductUnit(finalProduct, getUnitById(unitId)))
-                .collect(Collectors.toList());
+            // Save the product units
+            List<ProductUnit> productUnits = productDTO.getUnitIds().stream()
+                    .map(unitId -> new ProductUnit(finalProduct, getUnitById(unitId)))
+                    .collect(Collectors.toList());
 
-        productUnitRepository.saveAll(productUnits);
+            productUnitRepository.saveAll(productUnits);
 
-        List<ProductImage> productImages = productDTO.getImagesProduct().stream()
-                .map(productFile -> {
-                    try {
-                        String productFileName = fileUtils.uploadFile(productFile, true);
-                        return new ProductImage(finalProduct, productFileName);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toList());
+            // Save the product images
+            List<ProductImage> productImages = productDTO.getImagesProduct().stream()
+                    .map(productFile -> {
+                        try {
+                            String productFileName = fileUtils.uploadFile(productFile, true);
+                            if (productFileName != null) {
+                                return new ProductImage(finalProduct, productFileName);
+                            } else {
+                                throw new RuntimeException("Failed to upload product image: " + productFile.getOriginalFilename());
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
 
-        productImageRepository.saveAll(productImages);
+            productImageRepository.saveAll(productImages);
 
-        return Optional.ofNullable(convertToModel(finalProduct));
+            return Optional.ofNullable(convertToModel(finalProduct));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty(); // or throw a custom exception with a meaningful message
+        }
     }
 
 
@@ -183,6 +193,7 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
             // Save the new units
             productUnitRepository.saveAll(unitsToAdd);
 
+            // Logic for handling product images
             List<ProductImage> existingProductImages = existingProduct.getProductImages();
 
             // Identify images to be removed
@@ -217,7 +228,15 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
                             throw new RuntimeException(e);
                         }
                     })
-                    .map(productFile -> new ProductImage(existingProduct, productFile))
+                    .map(productFile -> {
+                        try {
+                            // Ensure the complete URL is stored in the database
+                            String productFileName = fileUtils.uploadFile(productFile, true);
+                            return new ProductImage(existingProduct, productFileName);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
                     .collect(Collectors.toList());
 
             // Save the new images
@@ -229,7 +248,6 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
             return convertToModel(updatedProduct);
         });
     }
-
 
     @Override
     @Transactional

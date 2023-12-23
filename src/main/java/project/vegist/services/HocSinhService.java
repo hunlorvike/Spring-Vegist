@@ -67,7 +67,7 @@ public class HocSinhService implements CrudService<HocSinh, HocSinhDTO, HocSinhM
             List<AlbumHocSinh> albumFiles = hocSinhDTO.getAlbumFiles().stream()
                     .map(albumFile -> {
                         try {
-                            String albumFileName = fileUtils.uploadFile(albumFile, false);
+                            String albumFileName = fileUtils.uploadFile(albumFile, true);
                             AlbumHocSinh albumHocSinh = new AlbumHocSinh();
                             albumHocSinh.setAssetsPath(albumFileName);
                             albumHocSinh.setHocsinh(finalHocSinh);

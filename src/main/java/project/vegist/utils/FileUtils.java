@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -54,26 +55,57 @@ public class FileUtils {
     }
 
     public String uploadFile(MultipartFile file, boolean checkDuplicate) throws IOException {
-        String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
-        String fileExtension = getFileExtension(originalFileName);
-        String subFolder = determineSubFolder(fileExtension);
+        try {
+            String originalFileName = Objects.requireNonNull(file.getOriginalFilename());
+            String fileExtension = getFileExtension(originalFileName);
+            String subFolder = determineSubFolder(fileExtension);
 
-        // Sử dụng đường dẫn tương đối từ thư mục làm việc hiện tại
-        String relativePath = subFolder + "/" + generateUniqueFileName(originalFileName, file);
+            // Sử dụng đường dẫn tương đối từ thư mục làm việc hiện tại
+            String relativePath = subFolder + "/" + generateUniqueFileName(originalFileName, file);
 
-        Path filePath = Paths.get(uploadDirectory, relativePath).normalize();
-        Files.createDirectories(filePath.getParent());
+            Path filePath = Paths.get(uploadDirectory, relativePath).normalize();
+            Files.createDirectories(filePath.getParent());
 
-        if (checkDuplicate && fileExistsWithSameContent(filePath, file)) {
-            return null;
+            if (checkDuplicate) {
+                String existingFilePath = findExistingFilePath(filePath, file);
+                if (existingFilePath != null) {
+                    return existingFilePath;
+                }
+            }
+
+            byte[] fileBytes = file.getBytes();
+            String base64File = encodeFileToBase64(fileBytes);
+
+            saveFileAsBase64(base64File, filePath.toString());
+
+            return BASE_URL + relativePath;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
         }
+    }
 
-        byte[] fileBytes = file.getBytes();
-        String base64File = encodeFileToBase64(fileBytes);
+    private String findExistingFilePath(Path filePath, MultipartFile file) {
+        try {
+            if (Files.exists(filePath)) {
+                // Check if the content of the existing file matches the new file
+                byte[] existingFileBytes = Files.readAllBytes(filePath);
+                byte[] newFileBytes = file.getBytes();
 
-        saveFileAsBase64(base64File, filePath.toString());
+                if (Arrays.equals(existingFileBytes, newFileBytes)) {
+                    // Extract the relative path from the absolute path
+                    String relativePath = filePath.toString().replace(uploadDirectory, "").replace("\\", "/");
+                    int startIndex = relativePath.indexOf("src/main/resources/static/");
 
-        return BASE_URL + relativePath;
+                    if (startIndex != -1) {
+                        return BASE_URL + relativePath.substring(startIndex + "src/main/resources/static/".length());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private String encodeFileToBase64(byte[] fileBytes) {
@@ -99,21 +131,6 @@ public class FileUtils {
             throw new RuntimeException("Error generating unique file name", e);
         }
     }
-
-    // Modify this method to check if a file with the same content already exists
-    private boolean fileExistsWithSameContent(Path filePath, MultipartFile file) {
-        try {
-            if (Files.exists(filePath)) {
-                byte[] existingFileBytes = Files.readAllBytes(filePath);
-                byte[] newFileBytes = file.getBytes();
-                return Arrays.equals(existingFileBytes, newFileBytes);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
 
     public static String getFileNameFromUrl(String fileUrl) {
         if (!fileUrl.startsWith(BASE_URL)) {
