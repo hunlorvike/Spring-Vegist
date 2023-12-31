@@ -49,10 +49,14 @@ public class SecurityConfig {
             "/test/**",
             "/auth/**",
             "/api/v1/public/**",
+            "/swagger-resources",
+            "/swagger-resources/**",
+            "/swagger-ui/**",
             "/swagger-ui.html",
             "/webjars/**",           // Swagger UI assets
             "/v2/api-docs",          // Swagger API docs
             "/v3/api-docs",          // Swagger API docs (OpenAPI 3)
+            "/v3/api-docs/**",       // Swagger API docs
             "/swagger-resources/**"  // Swagger resources
     };
 
