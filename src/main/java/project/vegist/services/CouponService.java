@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.CouponDTO;
@@ -11,6 +13,7 @@ import project.vegist.models.CouponModel;
 import project.vegist.repositories.CouponRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -130,10 +133,27 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
         return false;
     }
 
-    @Override
-    public List<CouponModel> search(String keywords) {
-        return null;
+    @Transactional(readOnly = true)
+    public List<CouponModel> searchCoupons(String keywords) {
+        SpecificationsBuilder<Coupon> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("value", keywords) // Add more fields if needed
+                    .or(builder -> {
+                        builder.like("percent", keywords);
+                        builder.like("startDate", keywords);
+                        builder.like("endDate", keywords);
+                    });
+        }
+
+        Specification<Coupon> spec = specificationsBuilder.build();
+
+        return couponRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
+
 
     @Override
     public CouponModel convertToModel(Coupon coupon) {

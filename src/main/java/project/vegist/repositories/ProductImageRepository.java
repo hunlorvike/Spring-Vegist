@@ -1,6 +1,7 @@
 package project.vegist.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +12,7 @@ import project.vegist.entities.ProductImage;
 import java.util.List;
 
 @Repository
-public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
+public interface ProductImageRepository extends JpaRepository<ProductImage, Long>, JpaSpecificationExecutor<ProductImage> {
     List<ProductImage> findByProduct_Id(Long productId);
 
     @Transactional

@@ -1,6 +1,6 @@
 package project.vegist.services;
 
-import org.springframework.beans.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +17,7 @@ import project.vegist.repositories.AddressRepository;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -151,8 +152,26 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     }
 
     @Override
+    @Transactional
     public List<AddressModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Address> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder.like("detail", keywords)
+                    .or(builder -> {
+                        builder.like("ward", keywords)
+                                .like("district", keywords)
+                                .like("city", keywords)
+                                .like("country", keywords)
+                                .like("zipCode", keywords)
+                                .like("iframeAddress", keywords)
+                                .like("addressType", keywords);
+                    });
+        }
+
+        return addressRepository.findAll(specificationsBuilder.build()).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

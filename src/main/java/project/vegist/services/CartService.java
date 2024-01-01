@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import project.vegist.repositories.ProductRepository;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.util.*;
@@ -186,8 +188,21 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<CartModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Cart> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("status", keywords) // Add more fields if needed
+                    .or(builder -> {
+
+                    });
+        }
+
+        return cartRepository.findAll(specificationsBuilder.build()).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

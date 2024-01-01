@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import project.vegist.models.CategoryModel;
 import project.vegist.repositories.CategoryRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -129,8 +131,22 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
     @Override
     @Transactional(readOnly = true)
     public List<CategoryModel> search(String keywords) {
-        // TODO: Implement search logic based on keywords
-        return null;
+        SpecificationsBuilder<Category> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("name", keywords) // Add more fields if needed
+                    .or(builder -> {
+                        // Add additional search conditions if needed
+                        builder.like("seoTitle", keywords);
+                        builder.like("metaKeys", keywords);
+                        builder.like("metaDesc", keywords);
+                    });
+        }
+
+        return categoryRepository.findAll(specificationsBuilder.build()).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,8 +19,10 @@ import project.vegist.repositories.ReviewRepository;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,7 +56,6 @@ public class ReviewService implements CrudService<Review, ReviewDTO, ReviewModel
         return reviewRepository.findAll(pageable).getContent().stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
-
     }
 
     @Override
@@ -137,9 +140,27 @@ public class ReviewService implements CrudService<Review, ReviewDTO, ReviewModel
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReviewModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Review> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("user.username", keywords); // assuming you have a 'username' field in the 'User' entity
+                        builder.like("product.productName", keywords); // assuming you have a 'productName' field in the 'Product' entity
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Review> spec = specificationsBuilder.build();
+
+        return reviewRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
+
 
     @Override
     public ReviewModel convertToModel(Review review) {
@@ -173,5 +194,4 @@ public class ReviewService implements CrudService<Review, ReviewDTO, ReviewModel
         review.setProduct(product);
         review.setRating(reviewDTO.getRating());
     }
-
 }

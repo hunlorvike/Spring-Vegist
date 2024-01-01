@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.TagDTO;
@@ -11,10 +13,10 @@ import project.vegist.models.TagModel;
 import project.vegist.repositories.TagRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -91,19 +93,9 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     @Transactional
     public List<TagModel> updateAll(Map<Long, TagDTO> longTagDTOMap) {
         return longTagDTOMap.entrySet().stream()
-                .map(entry -> {
-                    Long tagId = entry.getKey();
-                    TagDTO tagDTO = entry.getValue();
-
-                    return tagRepository.findById(tagId)
-                            .map(existingTag -> {
-                                convertToEntity(tagDTO, existingTag);
-                                Tag updatedTag = tagRepository.save(existingTag);
-                                return convertToModel(updatedTag);
-                            })
-                            .orElse(null);
-                })
-                .filter(Objects::nonNull)
+                .map(entry -> update(entry.getKey(), entry.getValue()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toList());
     }
 
@@ -129,20 +121,41 @@ public class TagService implements CrudService<Tag, TagDTO, TagModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TagModel> search(String keywords) {
-        // Implement your search logic
-        return null;
+        SpecificationsBuilder<Tag> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("tagName", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Tag> spec = specificationsBuilder.build();
+
+        return tagRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TagModel convertToModel(Tag tag) {
+        if (tag == null) {
+            return null;
+        }
         return new TagModel(tag.getId(), tag.getTagName(), tag.isStatus(),
                 DateTimeUtils.formatLocalDateTime(tag.getCreatedAt()), DateTimeUtils.formatLocalDateTime(tag.getUpdatedAt()));
     }
 
     @Override
     public void convertToEntity(TagDTO tagDTO, Tag tag) {
-        tag.setTagName(tagDTO.getTagName());
-        tag.setStatus(tagDTO.isStatus());
+        if (tagDTO != null) {
+            tag.setTagName(tagDTO.getTagName());
+            tag.setStatus(tagDTO.isStatus());
+        }
     }
 }

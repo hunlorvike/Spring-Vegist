@@ -1,10 +1,12 @@
 package project.vegist.services;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.OrderDTO;
@@ -16,6 +18,7 @@ import project.vegist.models.OrderModel;
 import project.vegist.repositories.*;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -194,9 +197,24 @@ public class OrderService implements CrudService<Order, OrderDTO, OrderModel> {
     @Override
     @Transactional
     public List<OrderModel> search(String keywords) {
-        // Implement search logic based on your requirements
-        // You may want to search by user, order status, etc.
-        return Collections.emptyList(); // Placeholder, replace with actual search implementation
+        SpecificationsBuilder<Order> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("user.username", keywords);
+                        builder.like("orderStatus", keywords);
+                        builder.like("coupon.code", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Order> spec = specificationsBuilder.build();
+
+        return orderRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
 

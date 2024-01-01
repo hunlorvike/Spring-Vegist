@@ -1,15 +1,19 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.ProductImageDTO;
 import project.vegist.entities.ProductImage;
 import project.vegist.models.ProductImageModel;
 import project.vegist.repositories.ProductImageRepository;
 import project.vegist.repositories.ProductRepository;
 import project.vegist.services.impls.CrudService;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -112,8 +116,25 @@ public class ProductImageService implements CrudService<ProductImage, ProductIma
     }
 
     @Override
+    @Transactional
     public List<ProductImageModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<ProductImage> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("product.name", keywords);
+                        builder.like("imagePath", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<ProductImage> spec = specificationsBuilder.build();
+
+        return productImageRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

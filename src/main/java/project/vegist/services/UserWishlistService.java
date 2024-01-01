@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import project.vegist.repositories.UserRepository;
 import project.vegist.repositories.UserWishlistRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -132,27 +135,50 @@ public class UserWishlistService implements CrudService<UserWishlist, UserWishli
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<UserWishlistModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<UserWishlist> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("user.fullName", keywords); // Assuming you have a 'fullName' field in the 'User' entity associated with the UserWishlist
+                        builder.like("product.productName", keywords); // Assuming you have a 'productName' field in the 'Product' entity associated with the UserWishlist
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<UserWishlist> spec = specificationsBuilder.build();
+
+        List<UserWishlistModel> result = userWishlistRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+
+        return result;
     }
 
     @Override
     public UserWishlistModel convertToModel(UserWishlist userWishlist) {
-        return new UserWishlistModel(userWishlist.getId(), userWishlist.getUser().getId(), userWishlist.getProduct().getId(),
-                DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()), DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()));
+        return new UserWishlistModel(userWishlist.getId(),
+                userWishlist.getUser() != null ? userWishlist.getUser().getId() : null,
+                userWishlist.getProduct() != null ? userWishlist.getProduct().getId() : null,
+                DateTimeUtils.formatLocalDateTime(userWishlist.getCreatedAt()),
+                DateTimeUtils.formatLocalDateTime(userWishlist.getUpdatedAt()));
     }
 
     @Override
     public void convertToEntity(UserWishlistDTO userWishlistDTO, UserWishlist userWishlist) {
-        User user = userRepository.findById(userWishlistDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", userWishlistDTO.getUserId(), HttpStatus.NOT_FOUND));
+        if (userWishlistDTO.getUserId() != null) {
+            User user = userRepository.findById(userWishlistDTO.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", userWishlistDTO.getUserId(), HttpStatus.NOT_FOUND));
+            userWishlist.setUser(user);
+        }
 
-        Product product = productRepository.findById(userWishlistDTO.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product", userWishlistDTO.getProductId(), HttpStatus.NOT_FOUND));
-
-        userWishlist.setUser(user);
-        userWishlist.setProduct(product);
+        if (userWishlistDTO.getProductId() != null) {
+            Product product = productRepository.findById(userWishlistDTO.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", userWishlistDTO.getProductId(), HttpStatus.NOT_FOUND));
+            userWishlist.setProduct(product);
+        }
     }
-
 }

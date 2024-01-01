@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,11 +11,13 @@ import project.vegist.entities.Action;
 import project.vegist.models.ActionModel;
 import project.vegist.repositories.ActionRepository;
 import project.vegist.services.impls.CrudService;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,9 +134,38 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<ActionModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Action> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("actionName", keywords) // Add more fields if needed
+                    .or(builder -> {
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        return actionRepository.findAll(specificationsBuilder.build()).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
+
+    public List<ActionModel> search(String keywords, Consumer<SpecificationsBuilder<Action>> additionalConditions) {
+        SpecificationsBuilder<Action> specificationsBuilder = new SpecificationsBuilder<>();
+
+        specificationsBuilder.like("actionName", keywords);
+
+        if (additionalConditions != null) {
+            additionalConditions.accept(specificationsBuilder);
+        }
+
+        return actionRepository.findAll(specificationsBuilder.build()).stream()
+                .map((Action action) -> convertToModel(action))
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     public ActionModel convertToModel(Action action) {

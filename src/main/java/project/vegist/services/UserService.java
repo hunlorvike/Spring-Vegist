@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +28,7 @@ import project.vegist.requests.LoginRequest;
 import project.vegist.requests.RegisterRequest;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -220,9 +222,29 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
         return true;
     }
 
+
     @Override
+    @Transactional(readOnly = true)
     public List<UserModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<User> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("fullName", keywords);
+                        builder.like("email", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<User> spec = specificationsBuilder.build();
+
+        List<UserModel> result = userRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+
+        return result;
     }
 
     @Override

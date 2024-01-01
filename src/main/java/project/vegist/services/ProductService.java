@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import project.vegist.repositories.*;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
 import project.vegist.utils.FileUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.util.*;
@@ -285,8 +288,26 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Product> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("productName", keywords);
+                        builder.like("description", keywords);
+                        builder.like("sku", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Product> spec = specificationsBuilder.build();
+
+        return productRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

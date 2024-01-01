@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.UnitDTO;
@@ -10,8 +12,8 @@ import project.vegist.entities.Unit;
 import project.vegist.models.UnitModel;
 import project.vegist.repositories.UnitRepository;
 import project.vegist.services.impls.CrudService;
+import project.vegist.utils.SpecificationsBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,20 +91,11 @@ public class UnitService implements CrudService<Unit, UnitDTO, UnitModel> {
     @Override
     @Transactional
     public List<UnitModel> updateAll(Map<Long, UnitDTO> longUnitDTOMap) {
-        List<UnitModel> updatedUnitModels = new ArrayList<>();
-        for (Map.Entry<Long, UnitDTO> entry : longUnitDTOMap.entrySet()) {
-            Long unitId = entry.getKey();
-            UnitDTO unitDTO = entry.getValue();
+        List<UnitModel> updatedUnitModels = longUnitDTOMap.entrySet().stream()
+                .map(entry -> update(entry.getKey(), entry.getValue()))
+                .flatMap(Optional::stream) // Remove empty Optionals
+                .collect(Collectors.toList());
 
-            Optional<Unit> optionalUnit = unitRepository.findById(unitId);
-
-            if (optionalUnit.isPresent()) {
-                Unit existingUnit = optionalUnit.get();
-                convertToEntity(unitDTO, existingUnit);
-                Unit updatedUnit = unitRepository.save(existingUnit);
-                updatedUnitModels.add(convertToModel(updatedUnit));
-            }
-        }
         return updatedUnitModels;
     }
 
@@ -127,8 +120,23 @@ public class UnitService implements CrudService<Unit, UnitDTO, UnitModel> {
     @Override
     @Transactional(readOnly = true)
     public List<UnitModel> search(String keywords) {
-        // Implement search logic based on your requirements
-        return null;
+        SpecificationsBuilder<Unit> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("unitValue", keywords);
+                        builder.like("unitName", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Unit> spec = specificationsBuilder.build();
+
+        return unitRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -139,7 +147,11 @@ public class UnitService implements CrudService<Unit, UnitDTO, UnitModel> {
 
     @Override
     public void convertToEntity(UnitDTO unitDTO, Unit unit) {
-        unit.setUnitValue(unitDTO.getUnitValue());
-        unit.setUnitName(unitDTO.getUnitName());
+        if (unitDTO.getUnitValue() != null) {
+            unit.setUnitValue(unitDTO.getUnitValue());
+        }
+        if (unitDTO.getUnitName() != null) {
+            unit.setUnitName(unitDTO.getUnitName());
+        }
     }
 }

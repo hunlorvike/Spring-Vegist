@@ -1,8 +1,10 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,7 @@ import project.vegist.repositories.InventoryRepository;
 import project.vegist.repositories.ProductRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -139,10 +142,26 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<InventoryModel> search(String keywords) {
-        return null;
-    }
+        SpecificationsBuilder<Inventory> specificationsBuilder = new SpecificationsBuilder<>();
 
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("product.name", keywords) // Assuming product has a "name" field
+                    .or(builder -> {
+                        builder.like("quantity", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Inventory> spec = specificationsBuilder.build();
+
+        return inventoryRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
+    }
     @Override
     public InventoryModel convertToModel(Inventory inventory) {
         return new InventoryModel(inventory.getId(), inventory.getProduct().getId(), inventory.getQuantity(),

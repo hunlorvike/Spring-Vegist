@@ -1,10 +1,11 @@
 package project.vegist.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 import project.vegist.entities.Label;
 
 @Repository
-public interface LabelRepository extends JpaRepository<Label, Long> {
+public interface LabelRepository extends JpaRepository<Label, Long>, JpaSpecificationExecutor<Label> {
     boolean existsByLabelName(String name);
 }

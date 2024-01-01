@@ -1,9 +1,11 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.vegist.dtos.LabelDTO;
@@ -11,6 +13,7 @@ import project.vegist.entities.Label;
 import project.vegist.models.LabelModel;
 import project.vegist.repositories.LabelRepository;
 import project.vegist.services.impls.CrudService;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -115,8 +118,24 @@ public class LabelService implements CrudService<Label, LabelDTO, LabelModel> {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<LabelModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Label> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .or(builder -> {
+                        builder.like("labelName", keywords);
+                        // Add additional search conditions if needed
+                        // builder.like("anotherField", keywords);
+                    });
+        }
+
+        Specification<Label> spec = specificationsBuilder.build();
+
+        return labelRepository.findAll(spec).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
 
     @Override

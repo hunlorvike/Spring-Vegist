@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,7 @@ import project.vegist.repositories.TagRepository;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.impls.CrudService;
 import project.vegist.utils.DateTimeUtils;
+import project.vegist.utils.SpecificationsBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -210,9 +212,26 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
     }
 
     @Override
+    @Transactional
     public List<ArticleModel> search(String keywords) {
-        return null;
+        SpecificationsBuilder<Articles> specificationsBuilder = new SpecificationsBuilder<>();
+
+        if (!StringUtils.isEmpty(keywords)) {
+            specificationsBuilder
+                    .like("title", keywords)
+                    .or(builder -> {
+                        builder.like("content", keywords)
+                                .like("seoTitle", keywords)
+                                .like("metaKeys", keywords)
+                                .like("metaDesc", keywords);
+                    });
+        }
+
+        return articleRepository.findAll(specificationsBuilder.build()).stream()
+                .map(this::convertToModel)
+                .collect(Collectors.toList());
     }
+
 
     @Override
     public ArticleModel convertToModel(Articles articles) {
