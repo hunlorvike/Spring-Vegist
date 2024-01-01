@@ -133,8 +133,8 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
         return false;
     }
 
-    @Transactional(readOnly = true)
-    public List<CouponModel> searchCoupons(String keywords) {
+    @Override
+    public List<CouponModel> search(String keywords) {
         SpecificationsBuilder<Coupon> specificationsBuilder = new SpecificationsBuilder<>();
 
         if (!StringUtils.isEmpty(keywords)) {
@@ -153,7 +153,6 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
     }
-
 
     @Override
     public CouponModel convertToModel(Coupon coupon) {
