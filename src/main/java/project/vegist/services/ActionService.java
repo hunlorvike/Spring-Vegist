@@ -107,10 +107,15 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
                 .collect(Collectors.toList());
     }
 
+
     @Override
     @Transactional
     public boolean deleteById(Long id) {
-        return actionRepository.existsById(id) && performDelete(id);
+        if (actionRepository.existsById(id)) {
+            performDelete(id);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -123,6 +128,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
         }
         return false;
     }
+
 
     @Override
     public List<ActionModel> search(String keywords) {
@@ -139,8 +145,7 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
         action.setActionName(actionDTO.getActionName());
     }
 
-    private boolean performDelete(Long id) {
+    private void performDelete(Long id) {
         actionRepository.deleteById(id);
-        return true;
     }
 }

@@ -1,19 +1,22 @@
 package project.vegist.configs;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.JwtService;
+
 
 import java.io.IOException;
 
@@ -21,9 +24,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-
     private final UserRepository userRepository;
-
     private final UserDetailsService userDetailsService;
 
     @Autowired
@@ -34,27 +35,46 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String token = request.getHeader("Authorization");
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
+        String accessToken = request.getHeader("Authorization");
+        String refreshToken = request.getHeader("Refresh-Token");
 
         try {
-            if (token != null && jwtService.isTokenValid(token)) {
-                Long userId = jwtService.getUserIdFromToken(token);
+            if (accessToken != null && jwtService.isTokenValid(accessToken)) {
+                Long userId = jwtService.getUserIdFromToken(accessToken);
 
                 // Load user details by userId
                 UserDetails userDetails = userRepository.findById(userId)
                         .map(user -> userDetailsService.loadUserByUsername(user.getEmail()))
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found for ID: " + userId));
+                        .orElseThrow(() -> new RuntimeException("User not found for ID: " + userId));
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(userDetails);
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else if (refreshToken != null && jwtService.isTokenValid(refreshToken)) {
+                // If the access token is not valid, check the refresh token
+                String newAccessToken = jwtService.refreshExpiredToken(refreshToken);
+
+                // Set the new access token in the response header
+                response.setHeader("New-Access-Token", newAccessToken);
             }
-        } catch (Exception e) {
+        } catch (ExpiredJwtException e) {
+            // Handle expired token (both access and refresh)
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token expired");
+            return;
+        } catch (JwtException e) {
+            // Handle other JWT exceptions
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid or expired token");
+            response.getWriter().write("Invalid token");
+            return;
+        } catch (Exception e) {
+            // Handle other exceptions
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Authentication failed");
             return;
         }
 

@@ -33,8 +33,7 @@ public class UserController {
         try {
             String accessToken = userService.login(loginRequest);
 
-            // Return success response with the access token
-            return ResponseEntity.ok(new SuccessResponse<>(accessToken));
+            return ResponseEntity.ok(new SuccessResponse<>(accessToken, "Login successfully"));
         } catch (AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse<>(e.getMessage()));
         }

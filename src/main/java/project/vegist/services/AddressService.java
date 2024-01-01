@@ -67,6 +67,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
         if (!userRepository.existsById(addressDTO.getUserId())) {
             throw new ResourceNotFoundException("User", addressDTO.getUserId(), HttpStatus.NOT_FOUND);
         }
+
         Address newAddress = new Address();
         convertToEntity(addressDTO, newAddress);
 
@@ -93,6 +94,10 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     @Override
     @Transactional
     public Optional<AddressModel> update(Long id, AddressDTO addressDTO) {
+        if (!addressRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Address", id, HttpStatus.NOT_FOUND);
+        }
+
         return addressRepository.findById(id)
                 .map(existingAddress -> {
                     if (addressDTO != null) {
@@ -104,6 +109,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
                     }
                 });
     }
+
 
     @Override
     @Transactional

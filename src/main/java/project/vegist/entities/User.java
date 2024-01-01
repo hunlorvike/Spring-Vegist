@@ -38,6 +38,9 @@ public class User {
 
     private String password;
 
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
     public User(String email, String password) {
         this.email = email;
         this.password = password;

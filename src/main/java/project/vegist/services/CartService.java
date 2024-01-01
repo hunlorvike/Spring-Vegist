@@ -132,7 +132,7 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
 
     private Optional<CartItem> findCartItemByProductId(List<CartItem> cartItems, Long productId) {
         return cartItems.stream()
-                .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
+                .filter(cartItem -> Objects.equals(cartItem.getProduct().getId(), productId))
                 .findFirst();
     }
 
@@ -144,9 +144,8 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
 
 
     private boolean containsCartItemByProductId(List<CartItemDTO> cartItemDTOs, Long productId) {
-        return cartItemDTOs.stream().anyMatch(cartItemDTO -> cartItemDTO.getProductId().equals(productId));
+        return cartItemDTOs.stream().anyMatch(cartItemDTO -> Objects.equals(cartItemDTO.getProductId(), productId));
     }
-
 
     @Override
     @Transactional

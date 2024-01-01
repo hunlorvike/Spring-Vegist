@@ -1,6 +1,5 @@
 package project.vegist.services;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -84,7 +83,6 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
                 .map(tagId -> {
                     Tag tag = tagRepository.findById(tagId)
                             .orElseThrow(() -> new ResourceNotFoundException("Tag", tagId, HttpStatus.NOT_FOUND));
-
                     ArticleTag newArticleTag = new ArticleTag();
                     newArticleTag.setArticles(savedArticle);
                     newArticleTag.setTag(tag);
@@ -96,6 +94,7 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
 
         return Optional.ofNullable(convertToModel(savedArticle));
     }
+
 
     @Override
     @Transactional

@@ -252,12 +252,19 @@ public class ProductService implements CrudService<Product, ProductDTO, ProductM
     @Override
     @Transactional
     public List<ProductModel> updateAll(Map<Long, ProductDTO> longProductDTOMap) {
-        return longProductDTOMap.entrySet().stream()
-                .map(entry -> update(entry.getKey(), entry.getValue()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
+        List<ProductModel> updatedProducts = new ArrayList<>();
+
+        for (Map.Entry<Long, ProductDTO> entry : longProductDTOMap.entrySet()) {
+            Long productId = entry.getKey();
+            ProductDTO productDTO = entry.getValue();
+
+            Optional<ProductModel> updatedProduct = update(productId, productDTO);
+            updatedProduct.ifPresent(updatedProducts::add);
+        }
+
+        return updatedProducts;
     }
+
 
     @Override
     @Transactional

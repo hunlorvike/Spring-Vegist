@@ -1,7 +1,6 @@
 package project.vegist.services;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -12,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import project.vegist.entities.User;
@@ -62,6 +62,15 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateRefreshToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
     private Claims buildClaims(Long userId, String email, Collection<String> roles) {
         Claims claims = Jwts.claims();
         claims.put("typeToken", "Bearer");
@@ -72,17 +81,27 @@ public class JwtService {
         return claims;
     }
 
+    @Transactional
     public String refreshExpiredToken(String expiredToken) {
         if (!isTokenValid(expiredToken)) {
             Claims claims = getClaims(expiredToken);
-            Long userId = claims.get("userId", Long.class);
+            String userEmail = claims.getSubject();
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userEmail));
 
+            // Generate a new access token
             CustomUserDetail userDetails = new CustomUserDetail(user);
+            String newAccessToken = generateToken(userDetails);
 
-            return generateToken(userDetails);
+            // Generate a new refresh token
+            String newRefreshToken = generateRefreshToken(user);
+
+            // Save the new refresh token in the database
+            user.setRefreshToken(newRefreshToken);
+            userRepository.save(user);
+
+            return newAccessToken;
         }
 
         return expiredToken;
@@ -92,7 +111,7 @@ public class JwtService {
         try {
             Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(removeBearerPrefix(token));
             return true;
-        } catch (JwtException e) {
+        } catch (Exception e) {
             return false;
         }
     }
