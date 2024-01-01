@@ -50,7 +50,7 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
     public String login(LoginRequest loginRequest) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -67,31 +67,38 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
         }
 
         User user = new User(registerRequest.getName(), registerRequest.getEmail(), passwordEncoder.encode(registerRequest.getPassword()));
-        addRoleToUser(user, "USER");
+
+        user.setUserRoles(new ArrayList<>());
+
+        addRoleToUser(user);
         userRepository.save(user);
         return true;
     }
 
-    private void addRoleToUser(User user, String roleName) {
-        Optional<Role> userRole = roleRepository.findByRoleName(roleName);
+    private void addRoleToUser(User user) {
+        List<UserRole> userRoles = Optional.ofNullable(user.getUserRoles()).orElseGet(ArrayList::new);
+
+        Optional<Role> userRole = roleRepository.findByRoleName("USER");
 
         if (userRole.isEmpty()) {
             Role newUserRole = new Role();
-            newUserRole.setRoleName(roleName);
+            newUserRole.setRoleName("USER");
             roleRepository.save(newUserRole);
             userRole = Optional.of(newUserRole);
         }
 
-        boolean hasUserRole = user.getUserRoles().stream()
-                .anyMatch(userRoleEntity -> userRoleEntity.getRole().getRoleName().equals(roleName));
+        boolean hasUserRole = userRoles.stream()
+                .anyMatch(userRoleEntity -> userRoleEntity.getRole().getRoleName().equals("USER"));
 
         if (!hasUserRole) {
             UserRole userRoleRegister = new UserRole();
             userRoleRegister.setUser(user);
             userRoleRegister.setRole(userRole.get());
-            user.getUserRoles().add(userRoleRegister);
+            userRoles.add(userRoleRegister);
+            user.setUserRoles(userRoles);
         }
     }
+
 
     @Override
     @Transactional(readOnly = true)

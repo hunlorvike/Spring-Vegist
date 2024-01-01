@@ -49,16 +49,21 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
     @Override
     @Transactional
     public Optional<CategoryModel> create(CategoryDTO categoryDTO) {
+        Objects.requireNonNull(categoryDTO, "categoryDTO must not be null");
+
         Category newCategory = new Category();
         convertToEntity(categoryDTO, newCategory);
         return Optional.ofNullable(convertToModel(categoryRepository.save(newCategory)));
     }
+
 
     @Override
     @Transactional
     public List<CategoryModel> createAll(List<CategoryDTO> categoryDTOS) {
         List<Category> newCategories = categoryDTOS.stream()
                 .map(categoryDTO -> {
+                    Objects.requireNonNull(categoryDTO, "categoryDTO must not be null");
+
                     Category newCategory = new Category();
                     convertToEntity(categoryDTO, newCategory);
                     return newCategory;
@@ -66,9 +71,9 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
                 .collect(Collectors.toList());
 
         List<Category> savedCategories = categoryRepository.saveAll(newCategories);
-        return savedCategories.stream().map(this::convertToModel)
-                .collect(Collectors.toList());
+        return savedCategories.stream().map(this::convertToModel).collect(Collectors.toList());
     }
+
 
     @Override
     @Transactional
@@ -87,12 +92,16 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
                 .map(entry -> {
                     Long id = entry.getKey();
                     CategoryDTO categoryDTO = entry.getValue();
-                    return categoryRepository.findById(id)
-                            .map(existingCategory -> {
-                                convertToEntity(categoryDTO, existingCategory);
-                                return existingCategory;
-                            })
-                            .orElse(null);
+
+                    if (categoryDTO != null) {
+                        return categoryRepository.findById(id)
+                                .map(existingCategory -> {
+                                    convertToEntity(categoryDTO, existingCategory);
+                                    return existingCategory;
+                                })
+                                .orElse(null);
+                    }
+                    return null;
                 })
                 .filter(Objects::nonNull)
                 .map(categoryRepository::save)
@@ -131,16 +140,22 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
 
     @Override
     public void convertToEntity(CategoryDTO categoryDTO, Category category) {
-        if (categoryDTO.getParentId() != null) {
-            Optional<Category> parentCategory = categoryRepository.findById(categoryDTO.getParentId());
+        Objects.requireNonNull(categoryDTO, "categoryDTO must not be null");
+        Objects.requireNonNull(category, "category must not be null");
+
+        Long parentId = categoryDTO.getParentId();
+        if (parentId != null) {
+            Optional<Category> parentCategory = categoryRepository.findById(parentId);
             parentCategory.ifPresent(category::setParent);
         }
+
         category.setName(categoryDTO.getName());
         category.setStatus(categoryDTO.getStatus());
         category.setSeoTitle(categoryDTO.getSeoTitle());
         category.setMetaKeys(categoryDTO.getMetaKeys());
         category.setMetaDesc(categoryDTO.getMetaDesc());
     }
+
 
     private boolean performDelete(Long id) {
         categoryRepository.deleteById(id);
@@ -150,4 +165,5 @@ public class CategoryService implements CrudService<Category, CategoryDTO, Categ
     private Long getParentId(Category parent) {
         return (parent != null) ? parent.getId() : null;
     }
+
 }

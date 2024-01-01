@@ -78,7 +78,9 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
     public Optional<ActionModel> update(Long id, ActionDTO actionDTO) {
         return actionRepository.findById(id)
                 .map(existingAction -> {
-                    convertToEntity(actionDTO, existingAction);
+                    if (actionDTO.getActionName() != null) {
+                        existingAction.setActionName(actionDTO.getActionName());
+                    }
                     return convertToModel(actionRepository.save(existingAction));
                 });
     }
@@ -92,7 +94,9 @@ public class ActionService implements CrudService<Action, ActionDTO, ActionModel
                     ActionDTO actionDTO = entry.getValue();
                     return actionRepository.findById(id)
                             .map(existingAction -> {
-                                convertToEntity(actionDTO, existingAction);
+                                if (actionDTO.getActionName() != null) {
+                                    existingAction.setActionName(actionDTO.getActionName());
+                                }
                                 return existingAction;
                             })
                             .orElse(null);

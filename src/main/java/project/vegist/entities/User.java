@@ -28,7 +28,7 @@ public class User {
     private String fullName;
 
     @Enumerated(EnumType.STRING)
-    private Gender gender;
+    private Gender gender = Gender.NOT_GIVEN;
 
     @Column(name = "email", unique = true)
     private String email;

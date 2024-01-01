@@ -66,6 +66,8 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
     @Override
     @Transactional
     public Optional<ArticleModel> create(ArticleDTO articleDTO) {
+        Objects.requireNonNull(articleDTO, "articleDTO must not be null");
+
         Articles newArticle = new Articles();
         convertToEntity(articleDTO, newArticle);
 
@@ -75,11 +77,13 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
                 .map(articleTag -> articleTag.getTag().getId())
                 .collect(Collectors.toList());
 
-        List<ArticleTag> newArticleTags = articleDTO.getTagIds().stream()
+        List<ArticleTag> newArticleTags = Optional.ofNullable(articleDTO.getTagIds())
+                .orElse(Collections.emptyList())
+                .stream()
                 .filter(tagId -> !existingTagIds.contains(tagId))
                 .map(tagId -> {
                     Tag tag = tagRepository.findById(tagId)
-                            .orElseThrow(() -> new EntityNotFoundException("Tag not found with ID: " + tagId));
+                            .orElseThrow(() -> new ResourceNotFoundException("Tag", tagId, HttpStatus.NOT_FOUND));
 
                     ArticleTag newArticleTag = new ArticleTag();
                     newArticleTag.setArticles(savedArticle);
@@ -221,7 +225,11 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
 
     @Override
     public void convertToEntity(ArticleDTO articleDTO, Articles articles) {
+        Objects.requireNonNull(articleDTO, "articleDTO must not be null");
+        Objects.requireNonNull(articles, "articles must not be null");
+
         Optional<User> user = userRepository.findById(articleDTO.getCreatorId());
+        user.orElseThrow(() -> new ResourceNotFoundException("User", articleDTO.getCreatorId(), HttpStatus.NOT_FOUND));
 
         articles.setTitle(articleDTO.getTitle());
         articles.setContent(articleDTO.getContent());
@@ -229,11 +237,14 @@ public class ArticleService implements CrudService<Articles, ArticleDTO, Article
         articles.setSeoTitle(articleDTO.getSeoTitle());
         articles.setMetaKeys(articleDTO.getMetaKeys());
         articles.setMetaDesc(articleDTO.getMetaDesc());
-        articles.setCreator(user.orElseThrow());
+        articles.setCreator(user.get());
 
-        List<ArticleTag> articleTags = articleDTO.getTagIds().stream()
+        List<ArticleTag> articleTags = Optional.ofNullable(articleDTO.getTagIds())
+                .orElse(Collections.emptyList())
+                .stream()
                 .map(tagId -> {
-                    Tag tag = tagRepository.findById(tagId).orElseThrow();
+                    Tag tag = tagRepository.findById(tagId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Tag", tagId, HttpStatus.NOT_FOUND));
                     ArticleTag articleTag = new ArticleTag();
                     articleTag.setTag(tag);
                     articleTag.setArticles(articles);

@@ -53,6 +53,8 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
     @Override
     @Transactional
     public Optional<CouponModel> create(CouponDTO couponDTO) {
+        Objects.requireNonNull(couponDTO, "couponDTO must not be null");
+
         Coupon newCoupon = new Coupon();
         convertToEntity(couponDTO, newCoupon);
         return Optional.ofNullable(convertToModel(couponRepository.save(newCoupon)));
@@ -63,6 +65,8 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
     public List<CouponModel> createAll(List<CouponDTO> couponDTOS) {
         List<Coupon> newCoupons = couponDTOS.stream()
                 .map(couponDTO -> {
+                    Objects.requireNonNull(couponDTO, "couponDTO must not be null");
+
                     Coupon newCoupon = new Coupon();
                     convertToEntity(couponDTO, newCoupon);
                     return newCoupon;
@@ -79,6 +83,8 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
     public Optional<CouponModel> update(Long id, CouponDTO couponDTO) {
         return couponRepository.findById(id)
                 .map(existingCoupon -> {
+                    Objects.requireNonNull(couponDTO, "couponDTO must not be null");
+
                     convertToEntity(couponDTO, existingCoupon);
                     return convertToModel(couponRepository.save(existingCoupon));
                 });
@@ -92,13 +98,16 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
                     Long couponId = entry.getKey();
                     CouponDTO couponDTO = entry.getValue();
 
-                    return couponRepository.findById(couponId)
-                            .map(existingCoupon -> {
-                                convertToEntity(couponDTO, existingCoupon);
-                                Coupon updatedCoupon = couponRepository.save(existingCoupon);
-                                return convertToModel(updatedCoupon);
-                            })
-                            .orElse(null);
+                    if (couponDTO != null) {
+                        return couponRepository.findById(couponId)
+                                .map(existingCoupon -> {
+                                    convertToEntity(couponDTO, existingCoupon);
+                                    Coupon updatedCoupon = couponRepository.save(existingCoupon);
+                                    return convertToModel(updatedCoupon);
+                                })
+                                .orElse(null);
+                    }
+                    return null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -128,12 +137,17 @@ public class CouponService implements CrudService<Coupon, CouponDTO, CouponModel
 
     @Override
     public CouponModel convertToModel(Coupon coupon) {
+        Objects.requireNonNull(coupon, "coupon must not be null");
+
         return new CouponModel(coupon.getId(), coupon.getValue(), coupon.getPercent(),
                 DateTimeUtils.formatLocalDateTime(coupon.getStartDate()), DateTimeUtils.formatLocalDateTime(coupon.getEndDate()));
     }
 
     @Override
     public void convertToEntity(CouponDTO couponDTO, Coupon coupon) {
+        Objects.requireNonNull(couponDTO, "couponDTO must not be null");
+        Objects.requireNonNull(coupon, "coupon must not be null");
+
         coupon.setValue(couponDTO.getValue());
         coupon.setPercent(couponDTO.getPercent());
         coupon.setStartDate(couponDTO.getStartDate());

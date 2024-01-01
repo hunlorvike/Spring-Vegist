@@ -111,6 +111,12 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version> <!-- Sử dụng phiên bản mới nhất hoặc phiên bản tương ứng -->
+        </dependency>
+
     </dependencies>
 
     <build>

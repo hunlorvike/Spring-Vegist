@@ -95,9 +95,13 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     public Optional<AddressModel> update(Long id, AddressDTO addressDTO) {
         return addressRepository.findById(id)
                 .map(existingAddress -> {
-                    convertToEntity(addressDTO, existingAddress);
-                    Address updatedAddress = addressRepository.save(existingAddress);
-                    return convertToModel(updatedAddress);
+                    if (addressDTO != null) {
+                        convertToEntity(addressDTO, existingAddress);
+                        Address updatedAddress = addressRepository.save(existingAddress);
+                        return convertToModel(updatedAddress);
+                    } else {
+                        throw new IllegalArgumentException("AddressDTO is null");
+                    }
                 });
     }
 
@@ -111,12 +115,13 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
 
             Optional<Address> optionalAddress = addressRepository.findById(addressId);
 
-            if (optionalAddress.isPresent()) {
-                Address existingAddress = optionalAddress.get();
-                convertToEntity(addressDTO, existingAddress);
-                Address updatedAddress = addressRepository.save(existingAddress);
-                updatedAddressModels.add(convertToModel(updatedAddress));
-            }
+            optionalAddress.ifPresent(existingAddress -> {
+                if (addressDTO != null) {
+                    convertToEntity(addressDTO, existingAddress);
+                    Address updatedAddress = addressRepository.save(existingAddress);
+                    updatedAddressModels.add(convertToModel(updatedAddress));
+                }
+            });
         }
         return updatedAddressModels;
     }
@@ -136,7 +141,7 @@ public class AddressService implements CrudService<Address, AddressDTO, AddressM
     public boolean deleteAll(List<Long> ids) {
         List<Address> addressesToDelete = addressRepository.findAllById(ids);
         addressRepository.deleteAll(addressesToDelete);
-        return false;
+        return true;
     }
 
     @Override

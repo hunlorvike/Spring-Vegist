@@ -19,6 +19,7 @@ import project.vegist.utils.DateTimeUtils;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -59,6 +60,9 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
     @Override
     @Transactional
     public Optional<InventoryModel> create(InventoryDTO inventoryDTO) throws IOException {
+        Objects.requireNonNull(inventoryDTO, "inventoryDTO must not be null");
+        Objects.requireNonNull(inventoryDTO.getProductId(), "productId must not be null");
+
         Inventory newInventory = new Inventory();
         convertToEntity(inventoryDTO, newInventory);
         return Optional.ofNullable(convertToModel(inventoryRepository.save(newInventory)));
@@ -67,14 +71,17 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
     @Override
     @Transactional
     public List<InventoryModel> createAll(List<InventoryDTO> inventoryDTOS) throws IOException {
-
         List<Inventory> newInventories = inventoryDTOS.stream()
                 .map(inventoryDTO -> {
+                    Objects.requireNonNull(inventoryDTO, "inventoryDTO must not be null");
+                    Objects.requireNonNull(inventoryDTO.getProductId(), "productId must not be null");
+
                     Inventory newInventory = new Inventory();
                     convertToEntity(inventoryDTO, newInventory);
                     return newInventory;
                 })
                 .collect(Collectors.toList());
+
         return inventoryRepository.saveAll(newInventories).stream()
                 .map(this::convertToModel)
                 .collect(Collectors.toList());
@@ -85,6 +92,9 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
     public Optional<InventoryModel> update(Long id, InventoryDTO inventoryDTO) {
         return inventoryRepository.findById(id)
                 .map(existingInventory -> {
+                    Objects.requireNonNull(inventoryDTO, "inventoryDTO must not be null");
+                    Objects.requireNonNull(inventoryDTO.getProductId(), "productId must not be null");
+
                     convertToEntity(inventoryDTO, existingInventory);
                     return convertToModel(inventoryRepository.save(existingInventory));
                 });
@@ -141,8 +151,12 @@ public class InventoryService implements CrudService<Inventory, InventoryDTO, In
 
     @Override
     public void convertToEntity(InventoryDTO inventoryDTO, Inventory inventory) {
-        inventory.setProduct(productRepository.findById(inventoryDTO.getProductId()).
-                orElseThrow(() -> new ResourceNotFoundException("Product", inventoryDTO.getProductId(), HttpStatus.NOT_FOUND)));
+        Objects.requireNonNull(inventoryDTO, "inventoryDTO must not be null");
+        Objects.requireNonNull(inventory, "inventory must not be null");
+        Objects.requireNonNull(inventoryDTO.getProductId(), "productId must not be null");
+
+        inventory.setProduct(productRepository.findById(inventoryDTO.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", inventoryDTO.getProductId(), HttpStatus.NOT_FOUND)));
         inventory.setQuantity(inventoryDTO.getQuantity());
     }
 }

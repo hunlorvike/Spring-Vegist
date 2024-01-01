@@ -69,7 +69,9 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
     @Override
     @Transactional
     public Optional<CartModel> create(CartDTO cartDTO) throws IOException {
-        Long userId = cartDTO.getUserId();
+        Objects.requireNonNull(cartDTO, "cartDTO must not be null");
+
+        Long userId = Objects.requireNonNull(cartDTO.getUserId(), "User ID must not be null");
         Optional<CartModel> pendingCart = findPendingCartByUserId(userId);
 
         if (pendingCart.isPresent()) {
@@ -218,11 +220,20 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
     }
 
     @Override
+    @Transactional
     public void convertToEntity(CartDTO cartDTO, Cart cart) {
-        cart.setUser(userRepository.findById(cartDTO.getUserId())
-                .orElseThrow(() -> new NoSuchElementException("User not found")));
+        Objects.requireNonNull(cartDTO, "cartDTO must not be null");
+        Objects.requireNonNull(cart, "cart must not be null");
 
-        List<CartItem> cartItems = cartDTO.getCartItems().stream()
+        Long userId = Objects.requireNonNull(cartDTO.getUserId(), "User ID must not be null");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+
+        cart.setUser(user);
+
+        List<CartItem> cartItems = Optional.ofNullable(cartDTO.getCartItems())
+                .orElse(Collections.emptyList())
+                .stream()
                 .map(cartItemDTO -> convertCartItemDTOToEntity(cartItemDTO, cart))
                 .collect(Collectors.toList());
 
@@ -241,6 +252,8 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
 
 
     public Optional<CartModel> findPendingCartByUserId(Long userId) {
+        Objects.requireNonNull(userId, "User ID must not be null");
+
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
             return cartRepository.findByUserIdAndStatus(userId, PENDING).map(this::convertToModel);
@@ -248,6 +261,4 @@ public class CartService implements CrudService<Cart, CartDTO, CartModel> {
             throw new ResourceNotFoundException("User ", userId, HttpStatus.CONFLICT);
         }
     }
-
-
 }

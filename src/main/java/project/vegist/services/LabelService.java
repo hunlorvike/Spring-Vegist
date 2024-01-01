@@ -1,6 +1,7 @@
 package project.vegist.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,17 @@ public class LabelService implements CrudService<Label, LabelDTO, LabelModel> {
         this.labelRepository = labelRepository;
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<LabelModel> findAll() {
-        return labelRepository.findAll().stream()
-                .map(this::convertToModel)
-                .collect(Collectors.toList());
+        try {
+            return labelRepository.findAll().stream()
+                    .map(this::convertToModel)
+                    .collect(Collectors.toList());
+        } catch (DataAccessException ex) {
+            throw new RuntimeException("Error while fetching labels", ex);
+        }
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -87,8 +92,7 @@ public class LabelService implements CrudService<Label, LabelDTO, LabelModel> {
     public List<LabelModel> updateAll(Map<Long, LabelDTO> longLabelDTOMap) {
         return longLabelDTOMap.entrySet().stream()
                 .map(entry -> update(entry.getKey(), entry.getValue()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toList());
     }
 

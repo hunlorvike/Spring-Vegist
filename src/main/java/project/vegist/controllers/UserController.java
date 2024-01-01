@@ -53,11 +53,9 @@ public class UserController {
                     ? new ResponseEntity<>(new SuccessResponse<>(null, "User registered successfully"), HttpStatus.CREATED)
                     : ResponseEntity.badRequest().build();
         } catch (ResourceExistException e) {
-            // Handle the case where the email already exists
             return ResponseEntity.status(e.getStatus())
                     .body(new ErrorResponse<>(e.getMessage()));
         } catch (Exception e) {
-            // Handle other exceptions and return ErrorResponse
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrorResponse<>("Error during user registration: " + e.getMessage()));
         }
