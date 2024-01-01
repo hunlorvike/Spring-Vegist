@@ -1,5 +1,6 @@
 package project.vegist.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +48,6 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
         this.authenticationManager = authenticationManager;
     }
 
-    // login
     public String login(LoginRequest loginRequest) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -54,7 +55,20 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return jwtService.generateToken((CustomUserDetail) userDetails);
+            String accessToken = jwtService.generateToken((CustomUserDetail) userDetails);
+
+            // Check if the user has a refresh token
+            User user = userRepository.findByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + loginRequest.getEmail()));
+
+            if (StringUtils.isNotBlank(user.getRefreshToken())) {
+                String refreshedAccessToken = jwtService.refreshAccessToken(user.getRefreshToken());
+                if (StringUtils.isNotBlank(refreshedAccessToken)) {
+                    return refreshedAccessToken;
+                }
+            }
+
+            return accessToken;
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Invalid email or password", e);
         }
@@ -72,6 +86,12 @@ public class UserService implements CrudService<User, UserDTO, UserModel> {
 
         addRoleToUser(user);
         userRepository.save(user);
+
+        // Generate a refresh token for the new user
+        String refreshToken = jwtService.generateRefreshToken(user);
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
         return true;
     }
 

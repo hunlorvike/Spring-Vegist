@@ -62,6 +62,24 @@ public class JwtService {
                 .compact();
     }
 
+    @Transactional
+    public String refreshAccessToken(String refreshToken) {
+        if (isTokenValid(refreshToken)) {
+            Claims claims = getClaims(refreshToken);
+            String userEmail = claims.getSubject();
+
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userEmail));
+
+            CustomUserDetail userDetails = new CustomUserDetail(user);
+            String newAccessToken = generateToken(userDetails);
+
+            return newAccessToken;
+        }
+
+        return null;
+    }
+
     public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail())

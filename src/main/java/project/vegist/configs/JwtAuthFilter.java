@@ -17,7 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import project.vegist.repositories.UserRepository;
 import project.vegist.services.JwtService;
 
-
 import java.io.IOException;
 
 @Component
@@ -54,10 +53,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             } else if (refreshToken != null && jwtService.isTokenValid(refreshToken)) {
                 // If the access token is not valid, check the refresh token
-                String newAccessToken = jwtService.refreshExpiredToken(refreshToken);
+                String newAccessToken = jwtService.refreshAccessToken(refreshToken);
 
                 // Set the new access token in the response header
-                response.setHeader("New-Access-Token", newAccessToken);
+                response.setHeader("Authorization", newAccessToken);
             }
         } catch (ExpiredJwtException e) {
             // Handle expired token (both access and refresh)
